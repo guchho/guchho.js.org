@@ -152,12 +152,16 @@ async function compose({
   const url = siteConfig.site.url + route
   const site = siteConfig.site
 
-  const meta = description
-    ? `<meta name="description" content="${escapeHtml(description)}" />`
-    : ''
+  const meta = [
+    `<title>${escapeHtml(title)}</title>`,
+    description ? `<meta name="description" content="${escapeHtml(description)}" />` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
   const canonical = `<link rel="canonical" href="${url}" />`
   const ogImage = `${site.url}/logo.png`
   const seo = [
+    canonical,
     `<meta property="og:site_name" content="${escapeHtml(site.name)}" />`,
     `<meta property="og:title" content="${escapeHtml(title)}" />`,
     description ? `<meta property="og:description" content="${escapeHtml(description)}" />` : '',
@@ -442,11 +446,13 @@ async function verifyOutput(pages) {
 
   let templateTokens = 0
   let badAssetRefs = 0
+  let missingTitle = 0
   const distFiles = await collectFiles(DIST)
   for (const rel of distFiles) {
     if (!rel.endsWith('.html')) continue
     const text = await fs.readFile(path.join(DIST, rel.split('/').join(path.sep)), 'utf8')
     if (/\{\{[^}]{2,}\}\}/.test(text)) templateTokens++
+    if (!/<title[^>]*>[^<]/i.test(text)) missingTitle++
     // Ignore markup inside code samples (they can contain literal src/href).
     const scan = text.replace(/<pre[\s\S]*?<\/pre>/gi, '').replace(/<code[\s\S]*?<\/code>/gi, '')
     for (const m of scan.matchAll(/(?:href|src)="([^"]*)"/g)) {
@@ -466,6 +472,7 @@ async function verifyOutput(pages) {
   const problems = []
   if (missing.length) problems.push(`${missing.length} expected page(s) missing:\n    - ${missing.join('\n    - ')}`)
   if (templateTokens) problems.push(`${templateTokens} unresolved {{…}} token(s) in dist/`)
+  if (missingTitle) problems.push(`${missingTitle} page(s) without a <title> in dist/`)
   if (badAssetRefs) problems.push(`${badAssetRefs} unreachable asset reference(s) in dist/`)
 
   if (!problems.length) {
