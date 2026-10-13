@@ -283,7 +283,7 @@ async function main() {
       headerSrc,
       footerSrc,
       route,
-      title: 'Guchho — ' + capitalize(name),
+      title: 'Guchho | ' + capitalize(name),
       description: siteConfig.site.description,
       body,
       toc: [],
