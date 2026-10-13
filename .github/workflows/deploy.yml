@@ -27,8 +27,17 @@ jobs:
           node-version: 22
           cache: npm
 
+      # `npm ci` cannot be used: guchho lists platform packages that are not
+      # published to npm, which makes the strict lockfile check fail. `npm
+      # install` skips the unavailable optional dependencies without failing.
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
+
+      - name: Ensure Guchho binary is runnable
+        run: |
+          node node_modules/guchho/install.js || true
+          chmod +x node_modules/@guchho/*/bin/guchho 2>/dev/null || true
+          node_modules/@guchho/linux-x64/bin/guchho --version
 
       - name: Checkout Guchho docs (source of truth)
         uses: actions/checkout@v4

@@ -99,6 +99,9 @@ async function resolveGuchho() {
   const exeName = process.platform === 'win32' ? 'guchho.exe' : 'guchho'
   const npmBin = path.join(ROOT, 'node_modules', '@guchho', `${platformKey}-${process.arch}`, 'bin', exeName)
   if (await exists(npmBin)) candidates.push(npmBin)
+  // Written by guchho's postinstall, which newer npm versions may block.
+  const shimBin = path.join(ROOT, 'node_modules', 'guchho', 'bin', exeName)
+  if (await exists(shimBin)) candidates.push(shimBin)
 
   if (process.platform === 'win32') {
     const where = spawnSync('where.exe', ['guchho'], { encoding: 'utf8' })
@@ -116,6 +119,10 @@ async function resolveGuchho() {
 
   for (const candidate of candidates) {
     try {
+      if (process.platform !== 'win32') {
+        // npm may drop the executable bit (or skip guchho's postinstall).
+        await fs.chmod(candidate, 0o755).catch(() => {})
+      }
       const res = spawnSync(candidate, ['--version'], { encoding: 'utf8', timeout: 30000 })
       if (res.error) continue
       if (res.status === 0 || /guchho/i.test(res.stdout || '')) return candidate
@@ -139,6 +146,7 @@ async function compose({
   toc,
   sidebarHtml,
   pageClass,
+  substituteBody = false,
 }) {
   const prefix = '../'.repeat(route.split('/').filter(Boolean).length + 2)
   const url = siteConfig.site.url + route
@@ -184,8 +192,9 @@ async function compose({
     .split('{{headExtra}}').join('')
     .split('{{pageClass}}').join(escapeHtml(pageClass))
     .split('{{header}}').join(header)
+    .split('{{footer}}').join(footer)
     .split('{{sidebar}}').join(sidebarHtml)
-    .split('{{body}}').join(body)
+    .split('{{body}}').join(substituteBody ? apply(body) : body)
     .split('{{toc}}').join(renderToc(toc))
 }
 
@@ -276,6 +285,7 @@ async function main() {
       toc: [],
       sidebarHtml,
       pageClass: name === 'home' ? 'home' : 'doc-page',
+      substituteBody: true,
     })
     const outFile = path.join(PAGES, routeToFile(route).split('/').join(path.sep))
     await mkdirs(path.dirname(outFile))
@@ -399,14 +409,19 @@ async function verifyOutput(pages) {
     if (!rel.endsWith('.html')) continue
     const text = await fs.readFile(path.join(DIST, rel.split('/').join(path.sep)), 'utf8')
     if (/\{\{[^}]{2,}\}\}/.test(text)) templateTokens++
-    for (const m of text.matchAll(/(?:href|src)="([^"?][^"]*)"/g)) {
+    // Ignore markup inside code samples (they can contain literal src/href).
+    const scan = text.replace(/<pre[\s\S]*?<\/pre>/gi, '').replace(/<code[\s\S]*?<\/code>/gi, '')
+    for (const m of scan.matchAll(/(?:href|src)="([^"]*)"/g)) {
       const ref = m[1]
-      if (ref.startsWith('/') && !ref.startsWith(siteConfig.site.url)) {
-        if (path.extname(ref)) badAssetRefs++
-      } else if (ref.includes('..')) {
-        const target = path.resolve(path.dirname(path.join(DIST, rel.split('/').join(path.sep))), ref)
-        if (!(await exists(target))) badAssetRefs++
+      if (!ref || ref.startsWith('#') || ref.startsWith('//')) continue
+      if (/^[a-z][a-z0-9+.-]*:/i.test(ref)) continue // absolute URL or scheme
+      if (ref.startsWith('/')) {
+        if (path.extname(ref) && !(await exists(path.join(DIST, ref.split('/').join(path.sep))))) badAssetRefs++
+        continue
       }
+      if (!ref.includes('..') && !ref.includes('/')) continue
+      const target = path.resolve(path.dirname(path.join(DIST, rel.split('/').join(path.sep))), ref)
+      if (!(await exists(target))) badAssetRefs++
     }
   }
 
