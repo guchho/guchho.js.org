@@ -1,0 +1,92 @@
+<section class="hero">
+  <div class="hero-inner">
+    <h1 class="hero-title"><span class="hero-mark">G</span>uchho</h1>
+    <p class="hero-tagline">{{tagline}}</p>
+    <p class="hero-lede">
+      Fast, all-in-one bundler, compiler and build tool for the web. Parse HTML,
+      JavaScript, TypeScript, JSX, CSS and assets, and produce a deployable
+      output directory with a single command.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/guide/getting-started/">Get started</a>
+      <a class="btn btn-secondary" href="/api/">Read the API</a>
+    </div>
+    <pre class="hero-install"><code>npm install guchho</code></pre>
+    <div class="hero-meta">
+      <span>~100x faster than Webpack</span>
+      <span>·</span>
+      <span>zero runtime deps</span>
+      <span>·</span>
+      <span>native speed</span>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="card">
+    <h2>Native bundler</h2>
+    <p>
+      A single native executable that bundles your app, JS, TypeScript, CSS and
+      assets with extreme speed and incremental rebuilds that stay fast as the
+      project grows.
+    </p>
+    <a href="/guide/core-concepts/">Core concepts →</a>
+  </div>
+  <div class="card">
+    <h2>HTML-first</h2>
+    <p>
+      Point Guchho at your HTML entrypoints. It follows scripts, styles, images
+      and imports and rewrites them into a production-ready output directory.
+    </p>
+    <a href="/guide/html-pipeline/">HTML pipeline →</a>
+  </div>
+  <div class="card">
+    <h2>Dev server &amp; watch</h2>
+    <p>
+      Rebuilds almost instantly when files change, with a built-in dev server,
+      live reload, and hot rebuilds for rapid iteration.
+    </p>
+    <a href="/guide/dev-server-and-watch/">Dev server →</a>
+  </div>
+  <div class="card">
+    <h2>Tree shaking</h2>
+    <p>
+      Dead code is eliminated from your bundles so the code that ships is the
+      code that runs.
+    </p>
+    <a href="/guide/tree-shaking/">Tree shaking →</a>
+  </div>
+  <div class="card">
+    <h2>Minification</h2>
+    <p>
+      Whitespace, identifiers and syntax minification produce smaller output
+      without changing the result.
+    </p>
+    <a href="/guide/minification/">Minification →</a>
+  </div>
+  <div class="card">
+    <h2>Plugin API</h2>
+    <p>
+      Extend every stage of the pipeline with a clean plugin API, or embed
+      Guchho in your own tools.
+    </p>
+    <a href="/plugins/">Plugins →</a>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>One command</h2>
+  <div class="codeblock"><pre><code>guchho build src/index.html --outdir=dist --minify --sourcemap</code></pre></div>
+  <p class="home-caption">
+    A fingerprintable output directory, ready to deploy anywhere.
+  </p>
+</section>
+
+<section class="home-section">
+  <h2>Start building</h2>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="/guide/getting-started/">Getting started</a>
+    <a class="btn btn-secondary" href="/examples/">Examples</a>
+    <a class="btn btn-secondary" href="/reference/cli/">CLI reference</a>
+  </div>
+</section>

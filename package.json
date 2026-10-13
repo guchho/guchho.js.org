@@ -1,0 +1,27 @@
+{
+  "name": "guchho-js-org",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Documentation website for Guchho, built with Guchho.",
+  "license": "MIT",
+  "homepage": "https://guchho.js.org",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guchho/guchho.js.org"
+  },
+  "scripts": {
+    "dev": "node scripts/build-docs.mjs --serve",
+    "build": "node scripts/build-docs.mjs",
+    "build:docs": "node scripts/build-docs.mjs --render-only",
+    "validate": "node scripts/build-docs.mjs --validate-only",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "gray-matter": "^4.0.3",
+    "guchho": "^1.0.6",
+    "highlight.js": "^11.10.0",
+    "markdown-it": "^14.1.0",
+    "markdown-it-anchor": "^9.2.0"
+  }
+}

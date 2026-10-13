@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content="guchho.js.org" />
+    {{meta}}
+    <link rel="icon" href="{{rootPrefix}}public/favicon.ico" type="image/x-icon" />
+    {{seo}}
+    <link rel="stylesheet" href="{{rootPrefix}}src/styles/global.css" />
+    <link rel="stylesheet" href="{{rootPrefix}}src/styles/docs.css" />
+    {{headExtra}}
+  </head>
+  <body class="{{pageClass}}">
+    {{header}}
+    <div class="page">
+      <aside class="sidebar" id="sidebar">
+        <button class="sidebar-backdrop" data-close-sidebar aria-label="Close navigation"></button>
+        <nav class="sidebar-nav" aria-label="Documentation">
+          <a class="sidebar-logo" href="{{homeUrl}}">Guchho</a>
+          {{sidebar}}
+        </nav>
+      </aside>
+      <main class="content" id="main">
+        {{body}}
+      </main>
+      <aside class="toc" id="toc" aria-label="On this page">
+        {{toc}}
+      </aside>
+    </div>
+    {{footer}}
+    <script type="module" src="{{rootPrefix}}src/main.js"></script>
+  </body>
+</html>
