@@ -7,7 +7,7 @@ export default {
     url: 'https://guchho.js.org',
     github: 'https://github.com/guchho/guchho',
     npm: 'https://www.npmjs.com/package/guchho',
-    licenseUrl: 'https://github.com/guchho/guchho/blob/master/LICENSE',
+    licenseUrl: 'https://github.com/guchho/guchho/blob/main/LICENSE',
     sponsorUrl: 'https://github.com/sponsors/code-hemu',
     copyright: 'CodeHemu',
   },

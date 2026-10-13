@@ -234,7 +234,7 @@ async function main() {
 
   for (const page of pages) {
     const title = page.title || page.file.split('/').pop().replace(/\.md$/, '')
-    const sourceLink = `${siteConfig.site.github}/blob/master/docs/${page.file}`
+    const sourceLink = `${siteConfig.site.github}/blob/main/docs/${page.file}`
     const lede = page.description ? `<p class="doc-lede">${escapeHtml(page.description)}</p>` : ''
     const sourceNote = `<p class="doc-source"><a href="${sourceLink}" target="_blank" rel="noopener noreferrer">Edit this page on GitHub</a></p>`
 

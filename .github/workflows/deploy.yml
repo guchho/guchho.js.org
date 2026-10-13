@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: guchho/guchho
-          ref: master
+          ref: main
           path: docs-src
 
       - name: Build site
