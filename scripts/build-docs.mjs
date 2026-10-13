@@ -347,6 +347,8 @@ async function main() {
     })
     if (build.status !== 0) process.exit(build.status || 1)
 
+    await repairOutputPaths(rendered)
+
     // Publish-time files guchho does not rewrite (og image, CNAME, robots, sitemap).
     await copyPublic()
 
@@ -391,10 +393,46 @@ async function copyPublic() {
   }
 }
 
+// Guchho (v1.0.6, all platforms) drops the final path separator when writing
+// nested HTML entries: "guide/x/index.html" lands at "guide/xindex.html", and
+// its relative asset URLs are computed for that shallower path. Repair each
+// page by moving it to the intended path and prefixing relative URLs with one
+// "../" (exactly the level that was lost). No-op once guchho is fixed.
+function deepen(html) {
+  return html.replace(
+    /(\s(?:href|src)=)("([^"]*)"|'([^']*)'|([^\s>]+))/gi,
+    (match, attr, _all, dq, sq, uq) => {
+      const url = dq ?? sq ?? uq
+      if (url === undefined || url === '') return match
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(url)) return match
+      const quote = dq !== undefined ? '"' : sq !== undefined ? "'" : ''
+      return `${attr}${quote}../${url}${quote}`
+    },
+  )
+}
+
+async function repairOutputPaths(pages) {
+  let repaired = 0
+  for (const page of pages) {
+    const intended = routeToFile(page.route) // e.g. "guide/getting-started/index.html"
+    if (!intended.includes('/')) continue
+    const mangled = intended.replace(/^(.*)\/([^/]*)$/, '$1$2')
+    if (mangled === intended) continue
+    const src = path.join(DIST, mangled.split('/').join(path.sep))
+    const dest = path.join(DIST, intended.split('/').join(path.sep))
+    if (src === dest || !(await exists(src))) continue
+    const html = deepen(await fs.readFile(src, 'utf8'))
+    await mkdirs(path.dirname(dest))
+    await fs.writeFile(dest, html, 'utf8')
+    await fs.rm(src, { force: true })
+    repaired++
+  }
+  if (repaired) console.log(`paths: repaired ${repaired} nested page output(s)`)
+}
+
 // Verify every route has a real file in dist/ and that no templating tokens or
 // broken asset references leaked into the output. Hard-fails in CI so a bad
-// guchho build can never be deployed silently; locally it reports the known
-// Windows output-path mangling as a warning.
+// guchho build can never be deployed silently.
 async function verifyOutput(pages) {
   const missing = []
   for (const page of pages) {
@@ -431,7 +469,7 @@ async function verifyOutput(pages) {
   if (badAssetRefs) problems.push(`${badAssetRefs} unreachable asset reference(s) in dist/`)
 
   if (!problems.length) {
-    console.log(`output: ok (${pages.length} pages)` )
+    console.log(`output: ok (${pages.length} pages)`)
     return
   }
 
@@ -440,10 +478,6 @@ async function verifyOutput(pages) {
     throw new Error(`dist/ verification failed:\n${report}`)
   }
   console.warn(`\nWARNING: ${report}\n`)
-  console.warn(
-    'Local guchho (Windows) mangles nested HTML output paths, so this is expected offline.\n' +
-      'Run `npm run build` on Linux/CI to produce a deployable dist/.',
-  )
 }
 
 async function collectFiles(dir) {

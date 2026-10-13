@@ -56,12 +56,14 @@ or `GUCHO_DOCS`:
 npm run build -- --docs /path/to/guchho/docs
 ```
 
-### Windows note
+### Guchho output-path workaround
 
-The Guchho binary currently mangles nested HTML output paths on Windows
-(`guide/x/index.html` is written as `guide/xindex.html`). Local full builds will
-therefore warn and produce a non-deployable `dist/`. Use `npm run build:docs`
-and `npm run validate` for local checks; the real build runs on Linux in CI.
+Guchho v1.0.6 drops the last path separator when writing nested HTML entries
+(`guide/x/index.html` is written as `guide/xindex.html`, with asset URLs
+computed for the shallower path) on every platform. `scripts/build-docs.mjs`
+repairs this after the build by moving each page to its intended path and
+prefixing its relative URLs with one `../`. The step is a no-op once guchho is
+fixed, and the build hard-fails in CI if any expected page is still missing.
 
 ## Regenerating on docs changes
 
