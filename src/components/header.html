@@ -16,10 +16,46 @@
       <a href="/plugins/">Plugins</a>
       <a href="/examples/">Examples</a>
     </nav>
+    <div class="header-search" data-search-index="/search-index.json">
+      <button class="search-toggle" type="button" data-search-open aria-label="Search docs" aria-expanded="false" aria-controls="search-panel">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><path d="m10 10 4 4"/></svg>
+        </span>
+        <span class="search-label">Search</span>
+        <kbd class="search-kbd" aria-hidden="true">/</kbd>
+      </button>
+      <div class="search-panel" id="search-panel" hidden>
+        <div class="search-field">
+          <span class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><path d="m10 10 4 4"/></svg>
+          </span>
+          <input class="search-input" type="search" data-search-input placeholder="Search the docs…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" />
+          <button class="search-close" type="button" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <p class="search-status" data-search-status role="status" aria-live="polite"></p>
+        <ul class="search-results" id="search-results" data-search-results role="listbox" aria-label="Search results"></ul>
+        <p class="search-hint" data-search-hint>
+          <span>
+            <kbd aria-label="Arrow up"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10V2"/><path d="M2.8 5.2 6 2l3.2 3.2"/></svg></kbd>
+            <kbd aria-label="Arrow down"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2v8"/><path d="M2.8 6.8 6 10l3.2-3.2"/></svg></kbd>
+            to navigate
+          </span>
+          <span>
+            <kbd aria-label="Enter"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v4a2 2 0 0 1-2 2H3"/><path d="M5 6 3 8l2 2"/></svg></kbd>
+            to open
+          </span>
+          <span><kbd>esc</kbd> to close</span>
+        </p>
+      </div>
+    </div>
     <div class="header-actions">
       <button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode" title="Toggle dark mode">
-        <span class="theme-icon theme-icon-light">☾</span>
-        <span class="theme-icon theme-icon-dark">☀</span>
+        <span class="theme-icon theme-icon-light" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1Z"/></svg>
+        </span>
+        <span class="theme-icon theme-icon-dark" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.14 1.14M11.66 11.66l1.14 1.14M12.8 3.2l-1.14 1.14M4.34 11.66 3.2 12.8"/></svg>
+        </span>
       </button>
       <a class="gh-link" href="{{github}}" target="_blank" rel="noopener noreferrer">
         <span class="gh-mark" aria-hidden="true">
@@ -29,4 +65,5 @@
       </a>
     </div>
   </div>
+  <div class="search-backdrop" data-search-backdrop hidden></div>
 </header>
