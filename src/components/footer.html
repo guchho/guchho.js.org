@@ -1,8 +1,10 @@
 <footer class="site-footer">
   <div class="site-footer-inner">
     <div class="footer-col">
-      <span class="footer-brand">Guchho</span>
-      <p class="footer-tagline">{{tagline}}</p>
+      <img class="footer-banner footer-banner-light" src="{{rootPrefix}}public/guchho_banner_dark.png" alt="Guchho" width="640" height="200" />
+      <img class="footer-banner footer-banner-dark" src="{{rootPrefix}}public/guchho_banner_light.png" alt="Guchho" width="640" height="200" />
+
+      <p class="footer-tagline">Fast HTML-first JavaScript, CSS &amp; asset bundler</p>
     </div>
     <div class="footer-col">
       <a href="/guide/getting-started/">Getting started</a>
@@ -17,14 +19,13 @@
     </div>
     <div class="footer-col">
       <p>
-        Built with <a href="/guide/getting-started/">Guchho</a> itself.
-        The docs are generated from the
-        <a href="{{github}}/tree/main/docs" target="_blank" rel="noopener noreferrer">guchho/guchho</a>
-        repository.
+        Built with <a href="/guide/getting-started/">Guchho.</a>
+        Docs generated from the<br>
+        <a href="{{github}}/tree/main/docs" target="_blank" rel="noopener noreferrer">guchho/guchho</a> repository.
       </p>
     </div>
   </div>
   <p class="footer-legal">
-    © {{year}} {{copyright}}. Licensed under the MIT License.
+    © {{year}} <a href="https://www.codehemu.in/" target="_blank" rel="noopener noreferrer">{{copyright}}</a>. Licensed under the MIT License.
   </p>
 </footer>
