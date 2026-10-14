@@ -690,11 +690,17 @@ html[data-theme="dark"] .btn-primary {
     top: 0;
     left: 0;
     bottom: 0;
+    align-self: auto;
+    height: 100vh;
+    height: 100dvh;
     z-index: 200;
     width: min(300px, 84vw);
     background: var(--bg);
     border-right: 1px solid var(--border);
     max-height: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 20px 16px;
     transform: translateX(-102%);
     transition: transform 0.18s ease;
@@ -715,14 +721,16 @@ html[data-theme="dark"] .btn-primary {
   .sidebar-backdrop {
     display: none;
   }
-  .sidebar.is-open .sidebar-backdrop {
+  .sidebar.is-open ~ .sidebar-backdrop {
     display: block;
     position: fixed;
     inset: 0;
-    right: -100vw;
-    background: #0000000a;
+    background: rgba(0, 0, 0, 0.4);
     border: none;
-    z-index: -1;
+    padding: 0;
+    margin: 0;
+    z-index: 199;
+    cursor: pointer;
   }
   .content {
     padding: 20px 4px 48px;
