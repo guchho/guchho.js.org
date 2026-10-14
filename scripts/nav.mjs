@@ -15,7 +15,7 @@ function sortFiles(files) {
   })
 }
 
-function renderGroup(group, pages, routeMap) {
+function renderGroup(group, pages, routeMap, seen) {
   const parts = []
   parts.push(`<li class="nav-group">`)
   parts.push(`<p class="nav-group-title">${escapeHtml(group.title)}</p>`)
@@ -23,6 +23,8 @@ function renderGroup(group, pages, routeMap) {
 
   if (group.links) {
     for (const link of group.links) {
+      if (seen.has(link.href)) continue
+      seen.add(link.href)
       parts.push(renderLink(link.href, link.label))
     }
   }
@@ -32,6 +34,8 @@ function renderGroup(group, pages, routeMap) {
     const candidates = sortFiles(pages.map((p) => p.file).filter((f) => f.startsWith(prefix)))
     for (const file of candidates) {
       const route = routeMap.get(file) || '#'
+      if (seen.has(route)) continue
+      seen.add(route)
       const page = pages.find((p) => p.file === file)
       parts.push(renderLink(route, pageTitle(page || { file })))
     }
@@ -54,6 +58,7 @@ function escapeHtml(s) {
 }
 
 export function renderSidebar(siteConfig, pages, routeMap) {
-  const groups = (siteConfig.nav || []).map((group) => renderGroup(group, pages, routeMap))
+  const seen = new Set()
+  const groups = (siteConfig.nav || []).map((group) => renderGroup(group, pages, routeMap, seen))
   return groups.join('\n')
 }
