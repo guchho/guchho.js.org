@@ -4,6 +4,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content="guchho.js.org" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('guchho-docs-theme');
+          if (t !== 'light' && t !== 'dark') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+      })();
+    </script>
     {{meta}}
     <link rel="icon" href="{{rootPrefix}}public/favicon.ico" type="image/x-icon" />
     {{seo}}

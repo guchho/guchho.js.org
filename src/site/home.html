@@ -1,23 +1,29 @@
 <section class="hero">
   <div class="hero-inner">
-    <h1 class="hero-title"><span class="hero-mark">G</span>uchho</h1>
+    <img class="hero-banner hero-banner-light" src="{{rootPrefix}}public/guchho_banner_dark.png" alt="Guchho" />
+    <img class="hero-banner hero-banner-dark" src="{{rootPrefix}}public/guchho_banner_light.png" alt="Guchho" />
     <p class="hero-tagline">{{tagline}}</p>
     <p class="hero-lede">
       Fast, all-in-one bundler, compiler and build tool for the web. Parse HTML,
       JavaScript, TypeScript, JSX, CSS and assets, and produce a deployable
       output directory with a single command.
     </p>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="/guide/getting-started/">Get started</a>
-      <a class="btn btn-secondary" href="/api/">Read the API</a>
-    </div>
+    {{benchmark}}
+
     <div class="hero-meta">
-      <span>~100x faster than Webpack</span>
+      <span>~10x faster than Webpack</span>
       <span>·</span>
       <span>zero runtime deps</span>
       <span>·</span>
       <span>native speed</span>
     </div>
+    <br/>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/guide/getting-started/">Get started</a>
+      <a class="btn btn-secondary" href="/api/">Read the API</a>
+    </div>
+    
+    
   </div>
 </section>
 

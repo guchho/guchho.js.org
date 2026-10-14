@@ -5,7 +5,7 @@
   --bg: #ffffff;
   --bg-soft: #f6f8fa;
   --bg-muted: #eceff3;
-  --bg-code: #0b1220;
+  --bg-code: #f6f8fa;
   --bg-code-inline: rgba(31, 35, 40, 0.08);
   --border: #d7dbe2;
   --border-strong: #c2c8d1;
@@ -17,7 +17,25 @@
   --accent-soft: rgba(76, 29, 149, 0.1);
   --link: #4338ca;
   --link-visited: #6d28d9;
-  --code-text: #e2e8f0;
+  --code-text: #1f2328;
+  --code-border: #d0d7de;
+  --code-btn-text: #57606a;
+  --code-btn-bg: rgba(246, 248, 250, 0.85);
+  --code-btn-border: #d0d7de;
+  --code-btn-text-hover: #1f2328;
+  --code-btn-border-hover: #afb8c1;
+  --hl-comment: #6a737d;
+  --hl-keyword: #cf222e;
+  --hl-built-in: #e36209;
+  --hl-title: #6f42c1;
+  --hl-title-class: #953800;
+  --hl-attr: #005cc5;
+  --hl-string: #032f62;
+  --hl-number: #005cc5;
+  --hl-tag-name: #22863a;
+  --hl-tag: #6a737d;
+  --hl-operator: #6a737d;
+  --hl-deletion: #b31d28;
   --header-h: 56px;
   --radius: 8px;
   --maxw: 1440px;
@@ -44,6 +62,24 @@ html[data-theme="dark"] {
   --link: #79b8ff;
   --link-visited: #c792ea;
   --code-text: #e2e8f0;
+  --code-border: #1e293b;
+  --code-btn-text: #94a3b8;
+  --code-btn-bg: rgba(15, 23, 42, 0.6);
+  --code-btn-border: #334155;
+  --code-btn-text-hover: #e2e8f0;
+  --code-btn-border-hover: #475569;
+  --hl-comment: #64748b;
+  --hl-keyword: #c4b5fd;
+  --hl-built-in: #7dd3fc;
+  --hl-title: #93c5fd;
+  --hl-title-class: #fbbf24;
+  --hl-attr: #e2e8f0;
+  --hl-string: #86efac;
+  --hl-number: #fdba74;
+  --hl-tag-name: #7dd3fc;
+  --hl-tag: #94a3b8;
+  --hl-operator: #94a3b8;
+  --hl-deletion: #fca5a5;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
@@ -418,6 +454,77 @@ html[data-theme="dark"] .nav-group-list a.is-active {
   height: 96px;
   margin: 0 auto 24px;
 }
+.hero-banner {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  margin: 0 auto 24px;
+}
+.hero-banner-dark {
+  display: none;
+}
+html[data-theme="dark"] .hero-banner-light {
+  display: none;
+}
+html[data-theme="dark"] .hero-banner-dark {
+  display: block;
+}
+
+/* ---------- Benchmark chart ---------- */
+
+.bench {
+  position: relative;
+  max-width: 800px;
+  margin: 32px auto 8px;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: left;
+  --bench-gutter: max(84px, calc(var(--bench-chars, 12) * 1ch + 18px));
+}
+
+.bench-caption {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.bench-fill {
+  transform-origin: left center;
+  animation-name: bench-grow;
+  animation-duration: 0.7s;
+  animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation-fill-mode: both;
+  border-radius: 4px;
+}
+
+.bench-track {
+  border-radius: 4px;
+}
+
+@keyframes bench-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 600px) {
+  .bench {
+    font-size: 11px;
+    margin: 24px auto 8px;
+    --bench-chars: 13 !important;
+    --bench-gutter: max(72px, calc(var(--bench-chars, 12) * 1ch + 12px));
+  }
+  .bench-caption {
+    font-size: 11px;
+  }
+}
+
 .hero h1 {
   font-size: 42px;
   line-height: 1.15;
@@ -607,5 +714,8 @@ html[data-theme="dark"] .btn-primary {
   * {
     scroll-behavior: auto !important;
     transition: none !important;
+  }
+  .bench-fill {
+    animation: none !important;
   }
 }

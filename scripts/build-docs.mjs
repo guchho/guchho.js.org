@@ -19,6 +19,7 @@ import { createRenderer, parseFrontmatter } from './markdown.mjs'
 import { buildRouteMap, routeToFile } from './routes.mjs'
 import { renderSidebar } from './nav.mjs'
 import { validateAll } from './validate-links.mjs'
+import { renderBenchmark } from './benchmark.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = path.join(ROOT, 'src')
@@ -146,6 +147,7 @@ async function compose({
   toc,
   sidebarHtml,
   pageClass,
+  benchmarkHtml = '',
   substituteBody = false,
 }) {
   const prefix = '../'.repeat(route.split('/').filter(Boolean).length + 2)
@@ -184,6 +186,7 @@ async function compose({
     '{{sponsorUrl}}': escapeHtml(site.sponsorUrl),
     '{{year}}': String(new Date().getFullYear()),
     '{{copyright}}': escapeHtml(site.copyright),
+    '{{benchmark}}': benchmarkHtml,
   }
   const apply = (s) => Object.entries(substitutes).reduce((out, [token, value]) => out.split(token).join(value), s)
 
@@ -230,6 +233,7 @@ async function main() {
   const headerSrc = await fs.readFile(path.join(COMPONENTS, 'header.html'), 'utf8')
   const footerSrc = await fs.readFile(path.join(COMPONENTS, 'footer.html'), 'utf8')
   const sidebarHtml = renderSidebar(siteConfig, pages, routeMap)
+  const benchmarkHtml = await renderBenchmark()
 
   await rmrf(PAGES)
   await mkdirs(PAGES)
@@ -261,6 +265,7 @@ async function main() {
       body,
       toc: page.toc,
       sidebarHtml,
+      benchmarkHtml,
       pageClass: 'doc-page',
     })
 
@@ -288,6 +293,7 @@ async function main() {
       body,
       toc: [],
       sidebarHtml,
+      benchmarkHtml,
       pageClass: name === 'home' ? 'home' : 'doc-page',
       substituteBody: true,
     })

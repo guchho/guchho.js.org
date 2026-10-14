@@ -126,16 +126,22 @@ html[data-theme="dark"] .doc-body code {
 
 /* Code blocks */
 
-.doc-body .codeblock {
+.codeblock {
   position: relative;
   margin: 0 0 20px;
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--bg-code);
-  border: 1px solid #1e293b;
+  border: 1px solid var(--code-border);
 }
 
-.doc-body .codeblock pre {
+.codeblock code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.codeblock pre {
   margin: 0;
   padding: 16px 16px 14px;
   overflow-x: auto;
@@ -146,48 +152,49 @@ html[data-theme="dark"] .doc-body code {
   -webkit-font-smoothing: antialiased;
 }
 
-.doc-body .copy-button {
+.copy-button {
   position: absolute;
   top: 8px;
   right: 8px;
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 600;
-  color: #94a3b8;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid #334155;
+  color: var(--code-btn-text);
+  background: var(--code-btn-bg);
+  border: 1px solid var(--code-btn-border);
   border-radius: 6px;
   padding: 3px 9px;
   cursor: pointer;
 }
-.doc-body .copy-button:hover {
-  color: #e2e8f0;
-  border-color: #475569;
+.copy-button:hover {
+  color: var(--code-btn-text-hover);
+  border-color: var(--code-btn-border-hover);
 }
 
-.doc-body .codeblock + .codeblock {
+.codeblock + .codeblock {
   margin-top: -10px;
 }
 
-/* highlight.js flat "github-dark" palette, tuned to --bg-code */
+/* highlight.js token palette, themed via the --hl-* variables so blocks follow
+   the light/dark theme (light = GitHub-light, dark = previous palette). */
 
-.hljs-comment { color: #64748b; font-style: italic; }
-.hljs-quote { color: #64748b; font-style: italic; }
-.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-type, .hljs-meta { color: #c4b5fd; }
-.hljs-built_in { color: #7dd3fc; }
+.hljs-comment,
+.hljs-quote { color: var(--hl-comment); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-type, .hljs-meta { color: var(--hl-keyword); }
+.hljs-built_in { color: var(--hl-built-in); }
 .hljs-title, .hljs-title.function_, .hljs-title.class_, .hljs-title.class_.inherited__,
-.hljs-section, .hljs-symbol { color: #93c5fd; }
-.hljs-title.class_ { color: #fbbf24; }
+.hljs-section, .hljs-symbol { color: var(--hl-title); }
+.hljs-title.class_ { color: var(--hl-title-class); }
 .hljs-attr, .hljs-attribute, .hljs-name, .hljs-variable, .hljs-template-variable,
-.hljs-selector-attr, .hljs-selector-class, .hljs-selector-pseudo, .hljs-params { color: #e2e8f0; }
-.hljs-string, .hljs-regexp, .hljs-addition, .hljs-value { color: #86efac; }
-.hljs-number, .hljs-selector-id { color: #fdba74; }
-.hljs-tag .hljs-name { color: #7dd3fc; }
-.hljs-tag { color: #94a3b8; }
-.hljs-meta .hljs-string { color: #86efac; }
-.hljs-comment .hljs-attr { color: #94a3b8; }
-.hljs-operator, .hljs-punctuation, .hljs-template-tag { color: #94a3b8; }
-.hljs-deletion { color: #fca5a5; }
+.hljs-selector-attr, .hljs-selector-class, .hljs-selector-pseudo, .hljs-params { color: var(--hl-attr); }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-value { color: var(--hl-string); }
+.hljs-number, .hljs-selector-id { color: var(--hl-number); }
+.hljs-tag .hljs-name { color: var(--hl-tag-name); }
+.hljs-tag { color: var(--hl-tag); }
+.hljs-meta .hljs-string { color: var(--hl-string); }
+.hljs-comment .hljs-attr { color: var(--hl-tag); }
+.hljs-operator, .hljs-punctuation, .hljs-template-tag { color: var(--hl-operator); }
+.hljs-deletion { color: var(--hl-deletion); }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 700; }
 

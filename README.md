@@ -11,7 +11,7 @@ is the single source of truth. This site does not duplicate any content — it
 renders that Markdown into pages at build time.
 
 ```
-docs/*.md  ──render──▶  src/pages/**/index.html  ──guchho build──▶  dist/
+docs/*.md  => render => src/pages/**/index.html => guchho build => dist/
 ```
 
 - `scripts/build-docs.mjs` renders docs + authored pages to `src/pages/`, writes
@@ -79,6 +79,7 @@ the **Deploy to GitHub Pages** workflow manually. (A scheduled or
 `guchho.js.org` domain. The build hard-fails if any expected page is missing
 from `dist/`, so a bad build can never be deployed silently.
 
+
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Guchho is licensed under **MIT**. Copyright © [CodeHemu](https://github.com/code-hemu).
