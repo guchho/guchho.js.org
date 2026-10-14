@@ -98,6 +98,253 @@
     })
   }
 
+  // Header documentation search.
+  function initSearch() {
+    const root = document.querySelector('.header-search')
+    if (!root) return
+    const indexUrl = root.dataset.searchIndex
+    const toggle = root.querySelector('[data-search-open]')
+    const panel = root.querySelector('.search-panel')
+    const input = root.querySelector('[data-search-input]')
+    const listEl = root.querySelector('[data-search-results]')
+    const statusEl = root.querySelector('[data-search-status]')
+    const hintEl = root.querySelector('[data-search-hint]')
+    const backdrop = document.querySelector('[data-search-backdrop]')
+    if (!toggle || !panel || !input || !listEl) return
+
+    let indexPromise = null
+    let items = null
+    let results = []
+    let active = -1
+    let open = false
+
+    const escapeHtml = (s) =>
+      String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+
+    function loadIndex() {
+      if (!indexPromise) {
+        indexPromise = fetch(indexUrl)
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error('bad status'))))
+          .then((data) => {
+            items = []
+            for (const page of data.pages || []) {
+              const sections = page.sections && page.sections.length ? page.sections : [{ id: '', heading: '', text: page.description || '' }]
+              for (const section of sections) {
+                items.push({
+                  route: page.route,
+                  pageTitle: page.title || '',
+                  id: section.id || '',
+                  heading: section.heading || '',
+                  text: section.text || '',
+                })
+              }
+            }
+            return items
+          })
+      }
+      return indexPromise
+    }
+
+    function isTypingTarget(el) {
+      if (!el) return false
+      const tag = el.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+    }
+
+    function setOpen(next) {
+      open = next
+      panel.hidden = !next
+      toggle.setAttribute('aria-expanded', String(next))
+      input.setAttribute('aria-expanded', String(next))
+      if (backdrop) backdrop.hidden = !next
+      document.body.classList.toggle('search-open', next)
+      if (next) {
+        loadIndex().then(() => {
+          if (open && input.value.trim()) runSearch(input.value)
+        }).catch(() => {
+          statusEl.textContent = 'Search is unavailable right now.'
+        })
+        input.focus()
+        input.select()
+      } else {
+        active = -1
+      }
+    }
+
+    function snippet(text, tokens) {
+      const lower = text.toLowerCase()
+      let at = -1
+      for (const t of tokens) {
+        const i = lower.indexOf(t)
+        if (i !== -1 && (at === -1 || i < at)) at = i
+      }
+      if (at === -1) at = 0
+      const start = Math.max(0, at - 40)
+      const end = Math.min(text.length, at + 110)
+      let s = text.slice(start, end)
+      if (start > 0) s = '…' + s
+      if (end < text.length) s = s + '…'
+      return s
+    }
+
+    function highlight(text, tokens) {
+      let html = escapeHtml(text)
+      for (const t of [...tokens].sort((a, b) => b.length - a.length)) {
+        if (!t) continue
+        const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig')
+        html = html.replace(re, '<mark>$1</mark>')
+      }
+      return html
+    }
+
+    function runSearch(query) {
+      const q = query.trim().toLowerCase()
+      if (!q) {
+        results = []
+        active = -1
+        render('')
+        return
+      }
+      if (!items) return
+      const tokens = q.split(/\s+/).filter(Boolean)
+      const scored = []
+      for (const item of items) {
+        const title = item.pageTitle.toLowerCase()
+        const heading = item.heading.toLowerCase()
+        const text = item.text.toLowerCase()
+        let score = 0
+        let ok = true
+        for (const t of tokens) {
+          const inTitle = title.includes(t)
+          const inHeading = heading.includes(t)
+          const inText = text.includes(t)
+          if (!inTitle && !inHeading && !inText) {
+            ok = false
+            break
+          }
+          if (inTitle) score += 6
+          if (inHeading) score += 4
+          if (inText) score += 1
+          if (title.startsWith(t) || heading.startsWith(t)) score += 3
+        }
+        if (ok) scored.push({ item, score })
+      }
+      scored.sort((a, b) => b.score - a.score)
+      results = scored.slice(0, 12).map((s) => s.item)
+      active = results.length ? 0 : -1
+      render(q, tokens)
+    }
+
+    function render(query, tokens = []) {
+      listEl.innerHTML = ''
+      if (!query) {
+        statusEl.textContent = ''
+        if (hintEl) hintEl.hidden = false
+        input.removeAttribute('aria-activedescendant')
+        return
+      }
+      if (!results.length) {
+        statusEl.textContent = 'No results for “' + query + '”'
+        if (hintEl) hintEl.hidden = true
+        return
+      }
+      statusEl.textContent = results.length + (results.length === 1 ? ' result' : ' results')
+      if (hintEl) hintEl.hidden = false
+      results.forEach((item, i) => {
+        const li = document.createElement('li')
+        li.className = 'search-result' + (i === active ? ' is-active' : '')
+        li.id = 'search-result-' + i
+        li.setAttribute('role', 'option')
+        li.setAttribute('aria-selected', String(i === active))
+        const crumb = escapeHtml(item.pageTitle) + (item.heading ? ' · ' + escapeHtml(item.heading) : '')
+        const body = snippet(item.text, tokens)
+        li.innerHTML =
+          '<span class="search-result-main">' +
+          '<span class="search-result-crumb">' + crumb + '</span>' +
+          (body ? '<span class="search-result-text">' + highlight(body, tokens) + '</span>' : '') +
+          '</span>' +
+          '<span class="search-result-arrow" aria-hidden="true">' +
+          '<svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg>' +
+          '</span>'
+        li.addEventListener('mousemove', () => setActive(i))
+        li.addEventListener('click', () => go(i))
+        listEl.appendChild(li)
+      })
+      updateActiveDescendant()
+    }
+
+    function setActive(i) {
+      if (i === active || !results.length) return
+      active = i
+      listEl.querySelectorAll('.search-result').forEach((el, idx) => {
+        const on = idx === active
+        el.classList.toggle('is-active', on)
+        el.setAttribute('aria-selected', String(on))
+      })
+      updateActiveDescendant()
+    }
+
+    function updateActiveDescendant() {
+      if (active >= 0) input.setAttribute('aria-activedescendant', 'search-result-' + active)
+      else input.removeAttribute('aria-activedescendant')
+    }
+
+    function move(delta) {
+      if (!results.length) return
+      active = (active + delta + results.length) % results.length
+      setActive(active)
+      const el = document.getElementById('search-result-' + active)
+      if (el) el.scrollIntoView({ block: 'nearest' })
+    }
+
+    function go(i) {
+      const item = results[i]
+      if (!item) return
+      const dest = item.route + (item.id ? '#' + item.id : '')
+      window.location.assign(dest)
+    }
+
+    let debounce
+    input.addEventListener('input', () => {
+      clearTimeout(debounce)
+      const v = input.value
+      debounce = setTimeout(() => runSearch(v), 110)
+    })
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1) }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1) }
+      else if (e.key === 'Enter') { e.preventDefault(); if (active >= 0) go(active) }
+      else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); toggle.focus() }
+    })
+
+    toggle.addEventListener('click', () => setOpen(!open))
+    const closeBtn = root.querySelector('[data-search-close]')
+    if (closeBtn) closeBtn.addEventListener('click', () => { setOpen(false); toggle.focus() })
+    if (backdrop) backdrop.addEventListener('click', () => setOpen(false))
+
+    document.addEventListener('click', (e) => {
+      if (open && !root.contains(e.target)) setOpen(false)
+    })
+
+    document.addEventListener('keydown', (e) => {
+      const mod = e.ctrlKey || e.metaKey
+      if (mod && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        setOpen(true)
+        return
+      }
+      if (e.key === '/' && !isTypingTarget(e.target) && !mod && !e.altKey) {
+        e.preventDefault()
+        setOpen(true)
+      }
+    })
+  }
+
   // Scroll-spy for the table of contents.
   function bindScrollSpy() {
     const toc = document.getElementById('toc')
@@ -129,6 +376,7 @@
     expandActiveGroup()
     addCopyButtons()
     bindScrollSpy()
+    initSearch()
   }
 
   if (document.readyState === 'loading') {
