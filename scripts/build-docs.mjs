@@ -20,6 +20,7 @@ import { buildRouteMap, routeToFile } from './routes.mjs'
 import { renderSidebar } from './nav.mjs'
 import { validateAll } from './validate-links.mjs'
 import { renderBenchmark } from './benchmark.mjs'
+import { buildSearchIndex } from './search-index.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = path.join(ROOT, 'src')
@@ -272,7 +273,7 @@ async function main() {
     const outFile = path.join(PAGES, routeToFile(page.route).split('/').join(path.sep))
     await mkdirs(path.dirname(outFile))
     await fs.writeFile(outFile, html, 'utf8')
-    rendered.push({ route: page.route, file: page.file, html, anchors: page.anchors })
+    rendered.push({ route: page.route, file: page.file, title, description: page.description, html, anchors: page.anchors })
   }
 
   // Authored pages (src/site/*.html). "home.html" -> "/", "examples.html" -> "/examples/".
@@ -300,7 +301,7 @@ async function main() {
     const outFile = path.join(PAGES, routeToFile(route).split('/').join(path.sep))
     await mkdirs(path.dirname(outFile))
     await fs.writeFile(outFile, html, 'utf8')
-    rendered.push({ route, file: '', html, anchors: new Set() })
+    rendered.push({ route, file: '', title: 'Guchho | ' + capitalize(name), description: siteConfig.site.description, html, anchors: new Set() })
   }
 
   console.log(`pages: ${rendered.length}`)
@@ -361,6 +362,13 @@ async function main() {
 
     // Publish-time files guchho does not rewrite (og image, CNAME, robots, sitemap).
     await copyPublic()
+
+    const searchIndex = buildSearchIndex(rendered)
+    await fs.writeFile(
+      path.join(DIST, 'search-index.json'),
+      JSON.stringify(searchIndex),
+      'utf8',
+    )
 
     const routesXml = rendered
       .map((p) => `${siteConfig.site.url}${p.route}`)
