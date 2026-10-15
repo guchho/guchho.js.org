@@ -7,7 +7,7 @@ built with Guchho itself and deployed to GitHub Pages at
 ## How it works
 
 The Markdown in the [guchho/guchho](https://github.com/guchho/guchho) repository
-is the single source of truth. This site does not duplicate any content — it
+is the single source of truth. This site does not duplicate any content - it
 renders that Markdown into pages at build time.
 
 ```
@@ -17,8 +17,8 @@ docs/*.md  => render => src/pages/**/index.html => guchho build => dist/
 - `scripts/build-docs.mjs` renders docs + authored pages to `src/pages/`, writes
   the entrypoint list into `guchho.config.js`, runs `guchho build`, copies
   `public/`, and emits `sitemap.xml` / `robots.txt`.
-- `scripts/routes.mjs` maps files to routes: `foo/bar.md` → `/foo/bar/`,
-  `dir/README.md` → `/dir/`, root `README.md` → `/docs/`.
+- `scripts/routes.mjs` maps files to routes: `foo/bar.md` => `/foo/bar/`,
+  `dir/README.md` => `/dir/`, root `README.md` => `/docs/`.
 - `scripts/markdown.mjs` renders Markdown (markdown-it + anchor + highlight.js)
   and rewrites relative links between docs.
 - `scripts/nav.mjs` builds the sidebar from `site.config.mjs`.
