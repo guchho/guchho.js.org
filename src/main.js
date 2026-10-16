@@ -368,6 +368,176 @@
     update()
   }
 
+  // Scroll progress bar in the header.
+  function bindScrollProgress() {
+    const bar = document.querySelector('[data-scroll-progress]')
+    if (!bar) return
+    let ticking = false
+    const update = () => {
+      ticking = false
+      const doc = document.documentElement
+      const max = doc.scrollHeight - doc.clientHeight
+      const ratio = max > 0 ? Math.min(1, Math.max(0, doc.scrollTop / max)) : 0
+      bar.style.width = (ratio * 100).toFixed(2) + '%'
+    }
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(update)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll, { passive: true })
+    update()
+  }
+
+  // Interactive "command run" terminal on the home page: build / dev / serve / init.
+  function bindTerminal() {
+    const term = document.querySelector('[data-terminal]')
+    if (!term) return
+    const cmdEl = term.querySelector('[data-terminal-cmd]')
+    const outEl = term.querySelector('[data-terminal-output]')
+    const tabs = [...term.querySelectorAll('[data-terminal-tab]')]
+    if (!cmdEl || !outEl || !tabs.length) return
+
+    const blocks = tabs.map((tab) => {
+      const name = tab.dataset.terminalTab
+      const el = outEl.querySelector('[data-terminal-scenario="' + name + '"]')
+      return el
+        ? { name, el, cmd: el.dataset.cmd || '', lines: [...el.querySelectorAll('.terminal-line')] }
+        : null
+    })
+    const scenarios = blocks.filter(Boolean)
+    if (!scenarios.length) return
+
+    const copyBtn = term.querySelector('[data-terminal-copy]')
+    const copyLabel = term.querySelector('[data-terminal-copy-label]')
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+    let visible = true
+    let runId = 0
+    let index = 0
+    let currentCmd = scenarios[0].cmd
+
+    term.classList.add('is-animating')
+
+    function setActiveTab(i) {
+      tabs.forEach((tab, j) => {
+        const on = j === i
+        tab.classList.toggle('is-active', on)
+        tab.setAttribute('aria-selected', String(on))
+        tab.tabIndex = on ? 0 : -1
+      })
+    }
+
+    function showFinal(i) {
+      index = i
+      const s = scenarios[i]
+      currentCmd = s.cmd
+      setActiveTab(i)
+      cmdEl.textContent = s.cmd
+      term.classList.add('is-done')
+      for (const other of scenarios) other.el.hidden = other !== s
+      s.lines.forEach((l) => l.classList.add('is-visible'))
+    }
+
+    async function play(i, id) {
+      index = i
+      const s = scenarios[i]
+      currentCmd = s.cmd
+      setActiveTab(i)
+      cmdEl.textContent = ''
+      term.classList.remove('is-done')
+      for (const other of scenarios) {
+        other.el.hidden = other !== s
+        other.lines.forEach((l) => l.classList.remove('is-visible'))
+      }
+      await sleep(350)
+      if (id !== runId || !visible) return
+      for (let k = 0; k < s.cmd.length; k++) {
+        if (id !== runId || !visible) return
+        cmdEl.textContent += s.cmd[k]
+        await sleep(s.cmd[k] === ' ' ? 15 : 24)
+      }
+      await sleep(300)
+      if (id !== runId || !visible) return
+      for (const line of s.lines) {
+        if (id !== runId || !visible) return
+        line.classList.add('is-visible')
+        await sleep(120)
+      }
+      term.classList.add('is-done')
+    }
+
+    async function loop() {
+      while (true) {
+        if (!visible) {
+          await sleep(500)
+          continue
+        }
+        const id = ++runId
+        await play(index, id)
+        if (id !== runId || !visible) continue
+        await sleep(3000)
+        if (id !== runId || !visible) continue
+        index = (index + 1) % scenarios.length
+      }
+    }
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => {
+        const scenario = scenarios.find((s) => s.name === tab.dataset.terminalTab)
+        if (!scenario) return
+        const target = scenarios.indexOf(scenario)
+        if (target === index && term.classList.contains('is-done')) return
+        index = target
+        runId++
+      })
+      tab.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+        e.preventDefault()
+        const dir = e.key === 'ArrowRight' ? 1 : -1
+        const next = tabs[(i + dir + tabs.length) % tabs.length]
+        next.focus()
+        next.click()
+      })
+    })
+
+    if (copyBtn && navigator.clipboard) {
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(currentCmd)
+          if (copyLabel) {
+            copyLabel.textContent = 'Copied'
+            setTimeout(() => (copyLabel.textContent = 'Copy'), 1500)
+          }
+        } catch {
+          /* clipboard unavailable */
+        }
+      })
+    }
+
+    if (reduceMotion) {
+      showFinal(0)
+      return
+    }
+
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) visible = entry.isIntersecting
+        },
+        { threshold: 0.25 },
+      )
+      io.observe(term)
+    }
+    document.addEventListener('visibilitychange', () => {
+      visible = !document.hidden
+    })
+
+    loop()
+  }
+
   function init() {
     applyTheme(currentTheme())
     document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.addEventListener('click', toggleTheme))
@@ -376,6 +546,8 @@
     expandActiveGroup()
     addCopyButtons()
     bindScrollSpy()
+    bindScrollProgress()
+    bindTerminal()
     initSearch()
   }
 
