@@ -1,96 +1,226 @@
 <section class="hero">
   <div class="hero-inner">
-    <img class="hero-banner hero-banner-light" src="{{rootPrefix}}public/guchho_banner_dark.png" alt="Guchho" />
-    <img class="hero-banner hero-banner-dark" src="{{rootPrefix}}public/guchho_banner_light.png" alt="Guchho" />
-    <p class="hero-tagline">{{tagline}}</p>
+    <h1 class="visually-hidden">Guchho</h1>
+    <img class="hero-banner hero-banner-light" src="{{rootPrefix}}public/guchho_banner_dark.png" alt="Guchho" width="1053" height="376" />
+    <img class="hero-banner hero-banner-dark" src="{{rootPrefix}}public/guchho_banner_light.png" alt="Guchho" width="1053" height="376" />
+    <p class="hero-tagline">Fast, HTML-first bundler for the web</p>
     <p class="hero-lede">
-      Fast, all-in-one bundler, compiler and build tool for the web. Parse HTML,
-      JavaScript, TypeScript, JSX, CSS and assets, and produce a deployable
-      output directory with a single command.
+      An all-in-one bundler, compiler and build tool. Parse HTML, JavaScript,
+      TypeScript, JSX, CSS and assets, and produce a deployable output directory
+      with a single command.
     </p>
-    {{benchmark}}
+
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/guide/getting-started/">
+        Get started
+        <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span>
+      </a>
+      <a class="btn btn-secondary" href="/api/">
+        <svg class="btn-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 6-6 6 6 6"/><path d="m16 6 6 6-6 6"/></svg>
+        Read the API
+      </a>
+    </div>
 
     <div class="hero-meta">
-      <span>~10x faster than Webpack</span>
-      <span>·</span>
-      <span>zero runtime deps</span>
-      <span>·</span>
-      <span>native speed</span>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+        ~10x faster than Webpack
+      </span>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        zero runtime deps
+      </span>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg>
+        native speed
+      </span>
     </div>
-    <br/>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="/guide/getting-started/">Get started</a>
-      <a class="btn btn-secondary" href="/api/">Read the API</a>
-    </div>
-    
-    
+
+    {{benchmark}}
   </div>
 </section>
 
 <section class="features">
-  <div class="card">
-    <h2>Native bundler</h2>
-    <p>
-      A single native executable that bundles your app, JS, TypeScript, CSS and
-      assets with extreme speed and incremental rebuilds that stay fast as the
-      project grows.
-    </p>
-    <a href="/guide/core-concepts/">Core concepts <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
-  </div>
-  <div class="card">
-    <h2>HTML-first</h2>
-    <p>
-      Point Guchho at your HTML entrypoints. It follows scripts, styles, images
-      and imports and rewrites them into a production-ready output directory.
-    </p>
-    <a href="/guide/html-pipeline/">HTML pipeline <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
-  </div>
-  <div class="card">
-    <h2>Dev server &amp; watch</h2>
-    <p>
-      Rebuilds almost instantly when files change, with a built-in dev server,
-      live reload, and hot rebuilds for rapid iteration.
-    </p>
-    <a href="/guide/dev-server-and-watch/">Dev server <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
-  </div>
-  <div class="card">
-    <h2>Tree shaking</h2>
-    <p>
-      Dead code is eliminated from your bundles so the code that ships is the
-      code that runs.
-    </p>
-    <a href="/guide/tree-shaking/">Tree shaking <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
-  </div>
-  <div class="card">
-    <h2>Minification</h2>
-    <p>
-      Whitespace, identifiers and syntax minification produce smaller output
-      without changing the result.
-    </p>
-    <a href="/guide/minification/">Minification <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
-  </div>
-  <div class="card">
-    <h2>Plugin API</h2>
-    <p>
-      Extend every stage of the pipeline with a clean plugin API, or embed
-      Guchho in your own tools.
-    </p>
-    <a href="/plugins/">Plugins <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
+  <h2 class="section-title">Everything in one tool</h2>
+  <div class="card-grid">
+    <div class="card">
+      <span class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+      </span>
+      <h3>Native bundler</h3>
+      <p>
+        A single native executable that bundles your app, JS, TypeScript, CSS and
+        assets with extreme speed and incremental rebuilds that stay fast as the
+        project grows.
+      </p>
+      <a href="/guide/core-concepts/">Core concepts <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
+    </div>
+    <div class="card">
+      <span class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 6-6 6 6 6"/><path d="m16 6 6 6-6 6"/></svg>
+      </span>
+      <h3>HTML-first</h3>
+      <p>
+        Point Guchho at your HTML entrypoints. It follows scripts, styles, images
+        and imports and rewrites them into a production-ready output directory.
+      </p>
+      <a href="/guide/html-pipeline/">HTML pipeline <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
+    </div>
+    <div class="card">
+      <span class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m8 10 2 2 4-4"/></svg>
+      </span>
+      <h3>Dev server &amp; watch</h3>
+      <p>
+        Rebuilds almost instantly when files change, with a built-in dev server,
+        live reload, and hot rebuilds for rapid iteration.
+      </p>
+      <a href="/guide/dev-server-and-watch/">Dev server <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
+    </div>
+    <div class="card">
+      <span class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"/></svg>
+      </span>
+      <h3>Tree shaking</h3>
+      <p>
+        Dead code is eliminated from your bundles so the code that ships is the
+        code that runs.
+      </p>
+      <a href="/guide/tree-shaking/">Tree shaking <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
+    </div>
+    <div class="card">
+      <span class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v4a1 1 0 0 1-1 1H3"/><path d="M16 3v4a1 1 0 0 0 1 1h4"/><path d="M8 21v-4a1 1 0 0 0-1-1H3"/><path d="M16 21v-4a1 1 0 0 1 1-1h4"/></svg>
+      </span>
+      <h3>Minification</h3>
+      <p>
+        Whitespace, identifiers and syntax minification produce smaller output
+        without changing the result.
+      </p>
+      <a href="/guide/minification/">Minification <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
+    </div>
+    <div class="card">
+      <span class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4a2 2 0 1 1 4 0v1h3a2 2 0 0 1 2 2v3h1a2 2 0 1 1 0 4h-1v3a2 2 0 0 1-2 2h-3v-1a2 2 0 1 0-4 0v1H6a2 2 0 0 1-2-2v-3H3a2 2 0 1 1 0-4h1V7a2 2 0 0 1 2-2h3V4Z"/></svg>
+      </span>
+      <h3>Plugin API</h3>
+      <p>
+        Extend every stage of the pipeline with a clean plugin API, or embed
+        Guchho in your own tools.
+      </p>
+      <a href="/plugins/">Plugins <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span></a>
+    </div>
   </div>
 </section>
 
-<section class="home-section">
-  <h2>One command</h2>
-  <div class="codeblock"><pre><code>guchho build src/index.html --outdir=dist --minify --sourcemap</code></pre></div>
+<section class="home-section home-section-wide">
+  <h2 class="section-title">One command</h2>
+  <div class="terminal" data-terminal>
+    <div class="terminal-bar">
+      <span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <div class="terminal-tabs" role="tablist" aria-label="Guchho commands">
+        <button class="terminal-tab is-active" type="button" role="tab" aria-selected="true" tabindex="0" data-terminal-tab="build">build</button>
+        <button class="terminal-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-terminal-tab="dev">dev</button>
+        <button class="terminal-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-terminal-tab="serve">serve</button>
+        <button class="terminal-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-terminal-tab="watch">watch</button>
+        <button class="terminal-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-terminal-tab="init">init</button>
+        <button class="terminal-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-terminal-tab="clean">clean</button>
+        <button class="terminal-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-terminal-tab="info">info</button>
+        <button class="terminal-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-terminal-tab="transform">transform</button>
+        <button class="terminal-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-terminal-tab="pack">pack</button>
+      </div>
+      <button class="terminal-copy" type="button" data-terminal-copy aria-label="Copy command">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg>
+        <span data-terminal-copy-label>Copy</span>
+      </button>
+    </div>
+    <div class="terminal-body">
+      <div class="terminal-line terminal-cmd">
+        <span class="terminal-prompt" aria-hidden="true">$</span>
+        <span class="terminal-text" data-terminal-cmd></span>
+        <span class="terminal-caret" aria-hidden="true"></span>
+      </div>
+      <div class="terminal-output" data-terminal-output aria-live="polite">
+        <div class="terminal-scenario" data-terminal-scenario="build" data-cmd="guchho build src/index.html --outdir=dist --minify --sourcemap">
+          <div class="terminal-files">
+            <div class="terminal-line"><span class="t-file">dist/index.html</span><span class="t-size">512b</span></div>
+            <div class="terminal-line"><span class="t-file">dist/assets/index-4F2A9C1D.js</span><span class="t-size">8.2kb</span></div>
+            <div class="terminal-line"><span class="t-file">dist/assets/index-4F2A9C1D.js.map</span><span class="t-size">14.6kb</span></div>
+            <div class="terminal-line"><span class="t-file">dist/assets/index-7B1E3A5C.css</span><span class="t-size">2.1kb</span></div>
+            <div class="terminal-line"><span class="t-file">dist/assets/logo-9D4C2E6F.svg</span><span class="t-size">1.2kb</span></div>
+          </div>
+          <div class="terminal-line terminal-blank">&nbsp;</div>
+          <div class="terminal-line terminal-summary"><span class="terminal-dim">Done in</span><span class="t-num">18ms</span></div>
+        </div>
+        <div class="terminal-scenario" data-terminal-scenario="dev" data-cmd="guchho dev --port=3000" hidden>
+          <div class="terminal-files">
+            <div class="terminal-line"><span class="t-file">dist/index.html</span><span class="t-size">384b</span></div>
+            <div class="terminal-line"><span class="t-file">dist/assets/style-EGOBBMO7.css</span><span class="t-size">308b</span></div>
+            <div class="terminal-line"><span class="t-file">dist/assets/main-CV5SQGR2.js</span><span class="t-size">135b</span></div>
+          </div>
+          <div class="terminal-line terminal-blank">&nbsp;</div>
+          <div class="terminal-line terminal-summary"><span class="terminal-dim">Done in</span><span class="t-num">45ms</span></div>
+          <div class="terminal-line terminal-blank">&nbsp;</div>
+          <div class="terminal-line terminal-server"><span class="t-arrow" aria-hidden="true">&gt;</span><span class="t-key">Local</span><span class="t-url">http://127.0.0.1:3000/</span></div>
+          <div class="terminal-line terminal-server"><span class="t-arrow" aria-hidden="true">&gt;</span><span class="t-key">Network</span><span class="t-url">http://localhost:3000/</span></div>
+        </div>
+        <div class="terminal-scenario" data-terminal-scenario="serve" data-cmd="guchho serve dist --port=3000" hidden>
+          <div class="terminal-line terminal-blank">&nbsp;</div>
+          <div class="terminal-line terminal-server"><span class="t-arrow" aria-hidden="true">&gt;</span><span class="t-key">Local</span><span class="t-url">http://127.0.0.1:3000/</span></div>
+          <div class="terminal-line terminal-server"><span class="t-arrow" aria-hidden="true">&gt;</span><span class="t-key">Network</span><span class="t-url">http://localhost:3000/</span></div>
+        </div>
+        <div class="terminal-scenario" data-terminal-scenario="watch" data-cmd="guchho watch src/index.html" hidden>
+          <div class="terminal-files">
+            <div class="terminal-line"><span class="t-file">dist/index.html</span><span class="t-size">384b</span></div>
+            <div class="terminal-line"><span class="t-file">dist/assets/style-EGOBBMO7.css</span><span class="t-size">308b</span></div>
+            <div class="terminal-line"><span class="t-file">dist/assets/main-CV5SQGR2.js</span><span class="t-size">135b</span></div>
+          </div>
+          <div class="terminal-line terminal-blank">&nbsp;</div>
+          <div class="terminal-line terminal-summary"><span class="terminal-dim">Done in</span><span class="t-num">42ms</span></div>
+        </div>
+        <div class="terminal-scenario" data-terminal-scenario="init" data-cmd="guchho init" hidden>
+          <div class="terminal-line terminal-create"><span class="t-create">Create</span><span class="t-path">src/index.html</span></div>
+          <div class="terminal-line terminal-create"><span class="t-create">Create</span><span class="t-path">src/main.js</span></div>
+          <div class="terminal-line terminal-create"><span class="t-create">Create</span><span class="t-path">src/style.css</span></div>
+          <div class="terminal-line terminal-create"><span class="t-create">Create</span><span class="t-path">guchho.config.js</span></div>
+          <div class="terminal-line terminal-create"><span class="terminal-dim">Config:</span><span class="t-path">guchho.config.js</span></div>
+          <div class="terminal-line terminal-blank">&nbsp;</div>
+          <div class="terminal-line"><span class="t-success">+ [SUCCESS] Project initialized successfully.</span></div>
+          <div class="terminal-line terminal-blank">&nbsp;</div>
+          <div class="terminal-line"><span class="terminal-dim">Next steps:</span></div>
+          <div class="terminal-line terminal-blank">&nbsp;</div>
+          <div class="terminal-line terminal-create"><span class="t-path">guchho dev</span></div>
+        </div>
+        <div class="terminal-scenario" data-terminal-scenario="clean" data-cmd="guchho clean" hidden>
+          <div class="terminal-line"><span class="t-success">Removed</span>&nbsp;<span class="t-path">dist/</span>&nbsp;<span class="terminal-dim">(5 items)</span></div>
+        </div>
+        <div class="terminal-scenario" data-terminal-scenario="info" data-cmd="guchho info" hidden>
+          <div class="terminal-line terminal-kv"><span class="t-label">Platform:</span><span class="t-path">Windows</span></div>
+          <div class="terminal-line terminal-kv"><span class="t-label">Build:</span><span class="t-path">Release</span></div>
+          <div class="terminal-line terminal-kv"><span class="t-label">Config:</span><span class="t-path">guchho.config.js</span></div>
+        </div>
+        <div class="terminal-scenario" data-terminal-scenario="transform" data-cmd="echo 'const n: number = 1' | guchho transform --loader=ts" hidden>
+          <div class="terminal-line"><span class="terminal-dim">transform finished in</span>&nbsp;<span class="t-num">28ms</span>&nbsp;<span class="terminal-dim">done</span></div>
+          <div class="terminal-line"><span class="t-path">const n = 1;</span></div>
+        </div>
+        <div class="terminal-scenario" data-terminal-scenario="pack" data-cmd="guchho pack dist -o release.zip" hidden>
+          <div class="terminal-line"><span class="t-success">+ [SUCCESS]</span>&nbsp;<span class="terminal-dim">Created</span>&nbsp;<span class="t-path">release.zip</span>&nbsp;<span class="t-num">(1.2 KB)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <p class="home-caption">
     A fingerprintable output directory, ready to deploy anywhere.
   </p>
 </section>
 
 <section class="home-section">
-  <h2>Start building</h2>
+  <h2 class="section-title">Start building</h2>
   <div class="cta-row">
-    <a class="btn btn-primary" href="/guide/getting-started/">Getting started</a>
+    <a class="btn btn-primary" href="/guide/getting-started/">
+      Getting started
+      <span class="arrow" aria-hidden="true"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8"/><path d="M6.8 2.8 10 6l-3.2 3.2"/></svg></span>
+    </a>
     <a class="btn btn-secondary" href="/examples/">Examples</a>
     <a class="btn btn-secondary" href="/reference/cli/">CLI reference</a>
   </div>
