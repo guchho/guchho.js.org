@@ -1,0 +1,473 @@
+/* Guchho playground: a two-panel, single-file editor + output. */
+
+.playground {
+  --pg-font: var(--font-mono);
+  --pg-size: 13px;
+  --pg-line: 1.6;
+  --pg-pad: 14px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.pg-head {
+  max-width: 760px;
+  margin: 0 0 20px;
+}
+
+.pg-kicker {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.pg-head h1 {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 4vw, 36px);
+  line-height: 1.15;
+}
+
+.pg-lede {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+
+.pg-lede code,
+.pg-foot code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-code-inline);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* Toolbar ---------------------------------------------------------------- */
+
+.pg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.pg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pg-status {
+  margin-left: auto;
+  align-self: center;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.pg-status[data-state="busy"] { color: var(--hl-built-in); border-color: var(--hl-built-in); }
+.pg-status[data-state="ok"] { color: var(--hl-tag-name); border-color: color-mix(in srgb, var(--hl-tag-name) 45%, transparent); }
+.pg-status[data-state="error"] { color: var(--hl-keyword); border-color: color-mix(in srgb, var(--hl-keyword) 45%, transparent); }
+
+/* Fields ----------------------------------------------------------------- */
+
+.pg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pg-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.pg-field select,
+.pg-field input[type="text"] {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.pg-field select:disabled,
+.pg-field input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pg-field-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.pg-field-check em {
+  color: var(--text-muted);
+  font-style: normal;
+}
+
+.pg-field-disabled { opacity: 0.7; }
+
+/* Settings --------------------------------------------------------------- */
+
+.pg-settings {
+  padding: 14px;
+  margin-bottom: 12px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.pg-config-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pg-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px 18px;
+  align-items: end;
+}
+
+/* Layout ----------------------------------------------------------------- */
+
+.pg-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(0, 560px);
+  gap: 14px;
+  justify-content: center;
+  align-items: stretch;
+  height: 548px;
+}
+
+.pg-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.pg-pane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 48px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+}
+
+.pg-filename {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-soft);
+}
+
+/* Editor ----------------------------------------------------------------- */
+
+.pg-editor {
+  display: flex;
+  flex: none;
+  height: 500px;
+  background: var(--bg-code);
+}
+
+.pg-gutter {
+  flex: none;
+  min-width: 44px;
+  margin: 0;
+  padding: var(--pg-pad) 8px var(--pg-pad) 12px;
+  text-align: right;
+  font-family: var(--pg-font);
+  font-size: var(--pg-size);
+  line-height: var(--pg-line);
+  white-space: pre;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  user-select: none;
+}
+
+.pg-codewrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.pg-highlight,
+.pg-textarea {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: var(--pg-pad);
+  font-family: var(--pg-font);
+  font-size: var(--pg-size);
+  line-height: var(--pg-line);
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  border: 0;
+}
+
+.pg-highlight {
+  pointer-events: none;
+  color: var(--code-text);
+  background: transparent;
+}
+
+.pg-textarea {
+  resize: none;
+  background: transparent;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--text);
+  outline: none;
+}
+
+.pg-textarea::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Output ----------------------------------------------------------------- */
+
+.pg-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 12px;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+}
+
+.pg-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.pg-tabs-scroll {
+  overflow-x: auto;
+}
+
+.pg-tab {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pg-tab:hover { color: var(--text); }
+
+.pg-tab.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.pg-outview {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The UA `[hidden]` rule is overridden by the `display` declarations above and
+   below, so elements using the hidden attribute must be hidden explicitly. */
+.pg-outview[hidden],
+.pg-files[hidden],
+.pg-empty[hidden] {
+  display: none;
+}
+
+.pg-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.pg-empty p { margin: 0; max-width: 34ch; }
+
+.pg-files {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pg-filelist {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.pg-file {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 9px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pg-file.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.pg-code {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: var(--pg-pad);
+  overflow: auto;
+  font-family: var(--pg-font);
+  font-size: var(--pg-size);
+  line-height: var(--pg-line);
+  color: var(--code-text);
+  background: var(--bg-code);
+  white-space: pre;
+}
+
+/* Inspectors ------------------------------------------------------------- */
+
+.pg-inspectbody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.pg-inspect-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.pg-inspect-ok {
+  margin: 0;
+  color: var(--hl-tag-name);
+  font-size: 13px;
+}
+
+.pg-inspect-h {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.pg-console-section { margin-bottom: 16px; }
+
+.pg-console-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pg-console-title.is-error { color: var(--hl-keyword); }
+.pg-console-title.is-warn { color: var(--hl-built-in); }
+
+.pg-console-section ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.pg-console-section li {
+  font-family: var(--pg-font);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.pg-unavailable {
+  max-width: 560px;
+  color: var(--text-soft);
+}
+
+.pg-unavailable-icon {
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.pg-unavailable p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.pg-unavailable-code {
+  margin: 0;
+  padding: 10px 12px;
+  font-family: var(--pg-font);
+  font-size: 12.5px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: auto;
+}
+
+/* Footer ----------------------------------------------------------------- */
+
+.pg-foot {
+  margin: 18px 0 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* Responsive ------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .pg-layout { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .pg-editor { height: 360px; }
+  .pg-status { margin-left: 0; }
+}
