@@ -1,0 +1,116 @@
+<section class="playground" data-playground data-worker="{{rootPrefix}}playground-worker.js">
+  <header class="pg-head">
+    <p class="pg-kicker">Playground</p>
+    <h1>Try Guchho in the browser</h1>
+    <p class="pg-lede">
+      The real Guchho bundler compiled to
+      <a href="https://www.npmjs.com/package/@guchho/wasm" target="_blank" rel="noopener noreferrer">WebAssembly</a>
+      (<code>@guchho/wasm</code>). Edit a file, press <kbd>Build</kbd> (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) to bundle it,
+      or <kbd>Print</kbd> to run a single-file transform. The engine runs in a Web Worker in this tab — nothing is uploaded.
+    </p>
+  </header>
+
+  <div class="pg-toolbar">
+    <label class="pg-field pg-field-inline">
+      <span>Language</span>
+      <select data-pg-lang aria-label="Source language"></select>
+    </label>
+    <div class="pg-actions">
+      <button class="btn btn-primary" type="button" data-pg-build>Build</button>
+      <button class="btn btn-secondary" type="button" data-pg-print>Print</button>
+      <button class="btn btn-secondary" type="button" data-pg-settings-toggle aria-expanded="false" aria-controls="pg-settings">Options</button>
+      <button class="btn btn-secondary" type="button" data-pg-reset>Reset</button>
+      <button class="btn btn-secondary" type="button" data-pg-copy>Copy</button>
+    </div>
+    <span class="pg-status" data-pg-status data-state="idle" role="status" aria-live="polite">Ready</span>
+  </div>
+
+  <aside class="pg-settings" id="pg-settings" data-pg-settings hidden aria-label="Build options">
+    <p class="pg-config-note">Only options the browser engine actually supports are shown enabled.</p>
+    <div class="pg-settings-grid">
+      <label class="pg-field">
+        <span>Target</span>
+        <select data-pg-opt-target></select>
+      </label>
+      <label class="pg-field">
+        <span>Format</span>
+        <select data-pg-opt-format></select>
+      </label>
+      <label class="pg-field">
+        <span>Platform</span>
+        <select data-pg-opt-platform></select>
+      </label>
+      <label class="pg-field">
+        <span>Loader</span>
+        <select data-pg-opt-loader></select>
+      </label>
+      <label class="pg-field pg-field-check">
+        <input type="checkbox" data-pg-opt-minify />
+        <span>Minify</span>
+      </label>
+      <label class="pg-field pg-field-check">
+        <input type="checkbox" data-pg-opt-bundle />
+        <span>Bundle</span>
+      </label>
+      <label class="pg-field pg-field-check pg-field-disabled" title="--sourcemap aborts the browser engine">
+        <input type="checkbox" disabled />
+        <span>Sourcemap <em>(unavailable in the browser engine)</em></span>
+      </label>
+    </div>
+  </aside>
+
+  <div class="pg-layout">
+    <section class="pg-pane pg-source" aria-label="Source editor">
+      <div class="pg-pane-head">
+        <span>Source</span>
+        <code class="pg-filename" data-pg-filename>index.html</code>
+      </div>
+      <div class="pg-editor">
+        <div class="pg-gutter" data-pg-gutter aria-hidden="true"></div>
+        <div class="pg-codewrap">
+          <pre class="pg-highlight" data-pg-highlight aria-hidden="true"><code></code></pre>
+          <textarea class="pg-textarea" data-pg-textarea spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Source code"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="pg-pane pg-output" aria-label="Output">
+      <div class="pg-bar">
+        <div class="pg-tabs pg-tabs-scroll" role="tablist" aria-label="Output view">
+          <button class="pg-tab is-active" type="button" role="tab" aria-selected="true" data-pg-out-tab="output">Output</button>
+          <button class="pg-tab" type="button" role="tab" aria-selected="false" data-pg-out-tab="errors">Errors</button>
+          <button class="pg-tab" type="button" role="tab" aria-selected="false" data-pg-out-tab="lexer">Lexer</button>
+          <button class="pg-tab" type="button" role="tab" aria-selected="false" data-pg-out-tab="ast">AST</button>
+        </div>
+      </div>
+
+      <div class="pg-outview" data-pg-out-view="output">
+        <div class="pg-empty" data-pg-output-empty>
+          <p>Press <strong>Build</strong> to bundle this file, or <strong>Print</strong> to run a transform. The generated code appears here.</p>
+        </div>
+        <div class="pg-files" data-pg-files hidden>
+          <div class="pg-filelist" data-pg-filelist role="tablist" aria-label="Generated files"></div>
+          <pre class="pg-code"><code data-pg-filecode></code></pre>
+        </div>
+      </div>
+
+      <div class="pg-outview" data-pg-out-view="errors" hidden>
+        <div class="pg-inspectbody" data-pg-errors></div>
+      </div>
+
+      <div class="pg-outview" data-pg-out-view="lexer" hidden>
+        <div class="pg-inspectbody" data-pg-lexer></div>
+      </div>
+
+      <div class="pg-outview" data-pg-out-view="ast" hidden>
+        <div class="pg-inspectbody" data-pg-ast></div>
+      </div>
+    </section>
+  </div>
+
+  <p class="pg-foot">
+    Engine <code>@guchho/wasm</code> v<span data-pg-version>—</span> · Runs in a Web Worker, entirely client-side ·
+    <a href="/playground-guide/">Playground guide</a>
+  </p>
+</section>
+<script type="module" src="{{rootPrefix}}src/playground.js"></script>
