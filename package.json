@@ -15,9 +15,13 @@
     "build": "node scripts/build-docs.mjs",
     "build:docs": "node scripts/build-docs.mjs --render-only",
     "validate": "node scripts/build-docs.mjs --validate-only",
+    "wasm:sync": "node scripts/sync-wasm.mjs --force",
+    "test": "node --test",
     "clean": "node scripts/clean.mjs"
   },
   "devDependencies": {
+    "@guchho/wasm": "^1.0.7",
+    "fflate": "^0.8.3",
     "gray-matter": "^4.0.3",
     "guchho": "^1.0.6",
     "highlight.js": "^11.12.0",
