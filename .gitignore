@@ -1,6 +1,7 @@
 node_modules/
 dist/
 src/pages/
+public/engine/
 .tmp/
 *.log
 .DS_Store
