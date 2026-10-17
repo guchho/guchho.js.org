@@ -21,6 +21,7 @@ import { renderSidebar } from './nav.mjs'
 import { validateAll } from './validate-links.mjs'
 import { renderBenchmark } from './benchmark.mjs'
 import { buildSearchIndex } from './search-index.mjs'
+import { syncWasm } from './sync-wasm.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = path.join(ROOT, 'src')
@@ -150,6 +151,7 @@ async function compose({
   pageClass,
   benchmarkHtml = '',
   substituteBody = false,
+  headExtra = '',
 }) {
   const prefix = '../'.repeat(route.split('/').filter(Boolean).length + 2)
   const url = siteConfig.site.url + route
@@ -197,7 +199,7 @@ async function compose({
   return apply(layoutSrc)
     .split('{{meta}}').join(meta)
     .split('{{seo}}').join(seo)
-    .split('{{headExtra}}').join('')
+    .split('{{headExtra}}').join(apply(headExtra))
     .split('{{pageClass}}').join(escapeHtml(pageClass))
     .split('{{header}}').join(header)
     .split('{{footer}}').join(footer)
@@ -278,30 +280,38 @@ async function main() {
 
   // Authored pages (src/site/*.html). "home.html" -> "/", "examples.html" -> "/examples/".
   const siteDir = path.join(SRC, 'site')
+  const siteTitles = { playground: 'Try in the browser', 'playground-guide': 'Playground guide' }
   for (const entry of await fs.readdir(siteDir, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isFile() || !entry.name.endsWith('.html')) continue
     const name = entry.name.replace(/\.html$/, '')
     const route = name === 'home' ? '/' : `/${name}/`
     if (knownDocRoutes.has(route)) continue
+    const pageTitle = siteTitles[name] ? `${siteTitles[name]} · Guchho` : 'Guchho | ' + capitalize(name)
+    const pageClass = name === 'home' ? 'home' : name === 'playground' ? 'playground' : 'doc-page'
+    const headExtra =
+      name === 'playground'
+        ? '<link rel="stylesheet" href="{{rootPrefix}}src/styles/playground.css" />'
+        : ''
     const body = await fs.readFile(path.join(siteDir, entry.name), 'utf8')
     const html = await compose({
       layoutSrc,
       headerSrc,
       footerSrc,
       route,
-      title: 'Guchho | ' + capitalize(name),
+      title: pageTitle,
       description: siteConfig.site.description,
       body,
       toc: [],
       sidebarHtml,
       benchmarkHtml,
-      pageClass: name === 'home' ? 'home' : 'doc-page',
+      pageClass,
       substituteBody: true,
+      headExtra,
     })
     const outFile = path.join(PAGES, routeToFile(route).split('/').join(path.sep))
     await mkdirs(path.dirname(outFile))
     await fs.writeFile(outFile, html, 'utf8')
-    rendered.push({ route, file: '', title: 'Guchho | ' + capitalize(name), description: siteConfig.site.description, html, anchors: new Set() })
+    rendered.push({ route, file: '', title: pageTitle, description: siteConfig.site.description, html, anchors: new Set() })
   }
 
   console.log(`pages: ${rendered.length}`)
@@ -347,6 +357,10 @@ async function main() {
       console.log('Rendered without building. Run `npm run build` to bundle.')
       return
     }
+
+    // Ship the browser engine (same-origin) for the playground.
+    const wasm = await syncWasm()
+    if (wasm.copied) console.log(`wasm: synced ${wasm.copied} engine file(s) into ${path.relative(ROOT, wasm.to)}`)
 
     const binary = await resolveGuchho()
     console.log(`guchho: ${binary}`)
