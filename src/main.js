@@ -360,9 +360,24 @@
       for (const h of headings) {
         if (h.getBoundingClientRect().top <= offset) current = h
       }
+      let activeEl = null
       tocLinks.forEach((a) => {
-        a.classList.toggle('is-active', a.dataset.target === current.id)
+        const on = a.dataset.target === current.id
+        a.classList.toggle('is-active', on)
+        if (on) activeEl = a
       })
+      if (activeEl) scrollToActive(activeEl)
+    }
+
+    function scrollToActive(el) {
+      const pad = 12
+      const r = el.getBoundingClientRect()
+      const c = toc.getBoundingClientRect()
+      if (r.top < c.top + pad) {
+        toc.scrollTop += r.top - c.top - pad
+      } else if (r.bottom > c.bottom - pad) {
+        toc.scrollTop += r.bottom - c.bottom + pad
+      }
     }
     window.addEventListener('scroll', update, { passive: true })
     update()
@@ -390,136 +405,205 @@
     update()
   }
 
-  // Interactive "command run" terminal on the home page: build / dev / serve / init.
-  function bindTerminal() {
-    const term = document.querySelector('[data-terminal]')
-    if (!term) return
-    const cmdEl = term.querySelector('[data-terminal-cmd]')
-    const outEl = term.querySelector('[data-terminal-output]')
-    const tabs = [...term.querySelectorAll('[data-terminal-tab]')]
-    if (!cmdEl || !outEl || !tabs.length) return
+  // Auto-playing workflow tour: numbered steps drive a terminal panel.
+  function bindTour() {
+    const root = document.querySelector('[data-tour]')
+    if (!root) return
+    const steps = [...root.querySelectorAll('[data-tour-step]')]
+    const cmdEl = root.querySelector('[data-tour-cmd]')
+    const outEl = root.querySelector('[data-tour-output]')
+    const counterEl = root.querySelector('[data-tour-counter]')
+    const logoEl = root.querySelector('[data-tour-logo]')
+    const panel = root.querySelector('[role="tabpanel"]')
+    const prevBtn = root.querySelector('[data-tour-prev]')
+    const nextBtn = root.querySelector('[data-tour-next]')
+    const replayBtn = root.querySelector('[data-tour-replay]')
+    const hoverZone = root.querySelector('[data-tour-hover]')
+    if (!steps.length || !cmdEl || !outEl) return
 
-    const blocks = tabs.map((tab) => {
-      const name = tab.dataset.terminalTab
-      const el = outEl.querySelector('[data-terminal-scenario="' + name + '"]')
-      return el
-        ? { name, el, cmd: el.dataset.cmd || '', lines: [...el.querySelectorAll('.terminal-line')] }
-        : null
+    const scenarios = steps.map((step) => {
+      const i = step.dataset.tourStep
+      const el = outEl.querySelector('[data-tour-scenario="' + i + '"]')
+      return el ? { el, cmd: el.dataset.cmd || '', lines: [...el.querySelectorAll('.terminal-line')] } : null
     })
-    const scenarios = blocks.filter(Boolean)
-    if (!scenarios.length) return
+    if (scenarios.some((s) => !s)) return
 
-    const copyBtn = term.querySelector('[data-terminal-copy]')
-    const copyLabel = term.querySelector('[data-terminal-copy-label]')
+    const term = root.querySelector('.tour-terminal')
+    if (term) term.classList.add('is-animating')
+
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
+    const STEP_MS = 5200
+    const total = steps.length
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-    let visible = true
-    let runId = 0
+
     let index = 0
-    let currentCmd = scenarios[0].cmd
+    let runId = 0
+    let visible = true
+    let hovering = false
+    let timer = null
+    let remaining = STEP_MS
+    let startedAt = 0
+    let paused = false
 
-    term.classList.add('is-animating')
-
-    function setActiveTab(i) {
-      tabs.forEach((tab, j) => {
+    function setActiveStep(i) {
+      index = i
+      steps.forEach((btn, j) => {
         const on = j === i
-        tab.classList.toggle('is-active', on)
-        tab.setAttribute('aria-selected', String(on))
-        tab.tabIndex = on ? 0 : -1
+        const li = btn.closest('.tour-step')
+        if (li) li.classList.toggle('is-active', on)
+        btn.setAttribute('aria-selected', String(on))
+        btn.setAttribute('aria-expanded', String(on))
+        btn.tabIndex = on ? 0 : -1
+      })
+      scenarios.forEach((s, j) => (s.el.hidden = j !== i))
+      if (counterEl) {
+        counterEl.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0')
+      }
+      if (panel) panel.setAttribute('aria-labelledby', 'tour-tab-' + i)
+    }
+
+    function clearProgress() {
+      steps.forEach((btn) => {
+        const step = btn.closest('.tour-step')
+        const bar = step && step.querySelector('.tour-progress')
+        if (!bar) return
+        bar.classList.remove('is-running')
+        bar.style.animationDuration = ''
       })
     }
 
+    function startProgress(id) {
+      if (reduceMotion) return
+      const step = steps[index].closest('.tour-step')
+      const bar = step && step.querySelector('.tour-progress')
+      if (!bar) return
+      void bar.offsetWidth
+      bar.style.animationDuration = remaining + 'ms'
+      bar.classList.add('is-running')
+      if (paused) bar.style.animationPlayState = 'paused'
+    }
+
+    function clearTimer() {
+      if (timer) clearTimeout(timer)
+      timer = null
+    }
+
+    function pause() {
+      if (paused) return
+      paused = true
+      clearTimer()
+      remaining = Math.max(400, remaining - (Date.now() - startedAt))
+      const step = steps[index] && steps[index].closest('.tour-step')
+      const bar = step && step.querySelector('.tour-progress')
+      if (bar) bar.style.animationPlayState = 'paused'
+    }
+
+    function resume(id) {
+      if (!paused) return
+      paused = false
+      const step = steps[index] && steps[index].closest('.tour-step')
+      const bar = step && step.querySelector('.tour-progress')
+      if (bar) bar.style.animationPlayState = 'running'
+      startedAt = Date.now()
+      timer = setTimeout(() => {
+        if (id !== runId) return
+        goTo((index + 1) % total, { auto: true })
+      }, remaining)
+    }
+
+    function scheduleNext(id, ms) {
+      clearTimer()
+      remaining = ms
+      startedAt = Date.now()
+      if (paused) return
+      timer = setTimeout(() => {
+        if (id !== runId) return
+        goTo((index + 1) % total, { auto: true })
+      }, ms)
+    }
+
     function showFinal(i) {
-      index = i
+      setActiveStep(i)
       const s = scenarios[i]
-      currentCmd = s.cmd
-      setActiveTab(i)
       cmdEl.textContent = s.cmd
-      term.classList.add('is-done')
-      for (const other of scenarios) other.el.hidden = other !== s
+      clearProgress()
+      for (const other of scenarios) other.lines.forEach((l) => l.classList.remove('is-visible'))
       s.lines.forEach((l) => l.classList.add('is-visible'))
     }
 
     async function play(i, id) {
-      index = i
+      setActiveStep(i)
       const s = scenarios[i]
-      currentCmd = s.cmd
-      setActiveTab(i)
       cmdEl.textContent = ''
-      term.classList.remove('is-done')
+      clearProgress()
       for (const other of scenarios) {
-        other.el.hidden = other !== s
         other.lines.forEach((l) => l.classList.remove('is-visible'))
       }
-      await sleep(350)
-      if (id !== runId || !visible) return
+      await sleep(280)
+      if (id !== runId) return
       for (let k = 0; k < s.cmd.length; k++) {
-        if (id !== runId || !visible) return
+        if (id !== runId) return
         cmdEl.textContent += s.cmd[k]
-        await sleep(s.cmd[k] === ' ' ? 15 : 24)
+        await sleep(s.cmd[k] === ' ' ? 14 : 22)
       }
-      await sleep(300)
-      if (id !== runId || !visible) return
+      if (id !== runId) return
+      startProgress(id)
+      scheduleNext(id, remaining)
+      await sleep(220)
       for (const line of s.lines) {
-        if (id !== runId || !visible) return
+        if (id !== runId) return
         line.classList.add('is-visible')
-        await sleep(120)
-      }
-      term.classList.add('is-done')
-    }
-
-    async function loop() {
-      while (true) {
-        if (!visible) {
-          await sleep(500)
-          continue
-        }
-        const id = ++runId
-        await play(index, id)
-        if (id !== runId || !visible) continue
-        await sleep(3000)
-        if (id !== runId || !visible) continue
-        index = (index + 1) % scenarios.length
+        await sleep(100)
       }
     }
 
-    tabs.forEach((tab, i) => {
-      tab.addEventListener('click', () => {
-        const scenario = scenarios.find((s) => s.name === tab.dataset.terminalTab)
-        if (!scenario) return
-        const target = scenarios.indexOf(scenario)
-        if (target === index && term.classList.contains('is-done')) return
-        index = target
-        runId++
-      })
-      tab.addEventListener('keydown', (e) => {
-        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+    function goTo(i, opts = {}) {
+      if (opts.auto && hovering) return
+      runId++
+      clearTimer()
+      paused = false
+      if (logoEl && !reduceMotion) {
+        logoEl.classList.remove('is-hopping')
+        void logoEl.offsetWidth
+        logoEl.classList.add('is-hopping')
+      }
+      if (reduceMotion) {
+        showFinal(i)
+        return
+      }
+      remaining = STEP_MS
+      play(i, runId)
+    }
+
+    steps.forEach((btn, i) => {
+      btn.addEventListener('click', () => goTo(i))
+      btn.addEventListener('keydown', (e) => {
+        let dir = 0
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') dir = 1
+        else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') dir = -1
+        else return
         e.preventDefault()
-        const dir = e.key === 'ArrowRight' ? 1 : -1
-        const next = tabs[(i + dir + tabs.length) % tabs.length]
-        next.focus()
-        next.click()
+        const next = steps[(i + dir + total) % total]
+        if (next) {
+          next.focus()
+          next.click()
+        }
       })
     })
 
-    if (copyBtn && navigator.clipboard) {
-      copyBtn.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(currentCmd)
-          if (copyLabel) {
-            copyLabel.textContent = 'Copied'
-            setTimeout(() => (copyLabel.textContent = 'Copy'), 1500)
-          }
-        } catch {
-          /* clipboard unavailable */
-        }
-      })
-    }
+    if (prevBtn) prevBtn.addEventListener('click', () => goTo((index - 1 + total) % total))
+    if (nextBtn) nextBtn.addEventListener('click', () => goTo((index + 1) % total))
+    if (replayBtn) replayBtn.addEventListener('click', () => goTo(index))
 
-    if (reduceMotion) {
-      showFinal(0)
-      return
+    if (hoverZone) {
+      hoverZone.addEventListener('mouseenter', () => {
+        hovering = true
+        pause()
+      })
+      hoverZone.addEventListener('mouseleave', () => {
+        hovering = false
+        resume(runId)
+      })
     }
 
     if ('IntersectionObserver' in window) {
@@ -527,15 +611,20 @@
         (entries) => {
           for (const entry of entries) visible = entry.isIntersecting
         },
-        { threshold: 0.25 },
+        { threshold: 0.2 },
       )
-      io.observe(term)
+      io.observe(root)
     }
     document.addEventListener('visibilitychange', () => {
       visible = !document.hidden
     })
 
-    loop()
+    if (reduceMotion) {
+      showFinal(0)
+      return
+    }
+
+    goTo(0)
   }
 
   function init() {
@@ -547,7 +636,7 @@
     addCopyButtons()
     bindScrollSpy()
     bindScrollProgress()
-    bindTerminal()
+    bindTour()
     initSearch()
   }
 
