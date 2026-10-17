@@ -18,7 +18,10 @@ function sortFiles(files) {
 function renderGroup(group, pages, routeMap, seen) {
   const parts = []
   parts.push(`<li class="nav-group">`)
-  parts.push(`<p class="nav-group-title">${escapeHtml(group.title)}</p>`)
+  const icon = group.icon
+    ? `<span class="nav-group-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter">${group.icon}</svg></span>`
+    : ''
+  parts.push(`<p class="nav-group-title">${icon}${escapeHtml(group.title)}</p>`)
   parts.push(`<ul class="nav-group-list">`)
 
   if (group.links) {
