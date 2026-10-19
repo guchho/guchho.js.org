@@ -13,8 +13,8 @@
   the same compiler that powers the native CLI, compiled to WebAssembly. The playground
   loads it inside a Web Worker so the interface stays responsive. A <strong>Build</strong>
   writes the file into the engine's virtual filesystem and runs the <code>build</code>
-  command; a <strong>Print</strong> feeds the source to the engine's <code>transform</code>
-  command over stdin and shows what it prints back.
+  command; the <strong>Lexer</strong> and <strong>AST</strong> tabs run the engine's own
+  <code>lex</code> and <code>parse</code> service commands over the same worker.
 </p>
 
 <h2>Choosing a language</h2>
@@ -24,12 +24,10 @@
   <strong>Reset</strong> restores the current language's example.
 </p>
 
-<h2>Build vs Print</h2>
+<h2>Build</h2>
 <dl>
   <dt>Build</dt>
-  <dd>Runs the full <code>build</code> command with the selected options and lists every emitted file. HTML entries compile their inline scripts and styles.</dd>
-  <dt>Print</dt>
-  <dd>Runs a single-file <code>transform</code> — the engine's parser and printer — and shows the transformed code. Useful for seeing TypeScript stripped, JSX compiled, or CSS minified.</dd>
+  <dd>Runs the full <code>build</code> command with the selected options and lists every emitted file. HTML entries compile their inline scripts and styles. The lexer and AST tabs refresh for the current source at the same time.</dd>
 </dl>
 
 <h2>Options</h2>
@@ -44,15 +42,14 @@
 <h2>Output and errors</h2>
 <p>
   The right panel has four tabs. <strong>Output</strong> shows the generated file(s),
-  <strong>Errors</strong> shows the engine's diagnostics, and <strong>Lexer</strong> and
-  <strong>AST</strong> explain why token-level and tree-level views are not offered in the
-  browser. <strong>Copy</strong> copies the visible output to your clipboard.
+  <strong>Errors</strong> shows the engine's diagnostics, <strong>Lexer</strong> shows the
+  token stream the engine produced for the current source, and <strong>AST</strong> shows
+  the parse summary — nodes for HTML, top-level rules for CSS, symbols for JavaScript.
+  <strong>Copy</strong> copies the visible output to your clipboard.
 </p>
 
 <h2>Not available in the browser</h2>
 <ul>
-  <li><strong>Print for HTML.</strong> The engine's <code>transform</code> command rejects the HTML loader, so the <strong>Print</strong> button is disabled for HTML — use <strong>Build</strong> instead.</li>
-  <li><strong>Lexer and AST.</strong> The WebAssembly build exposes only the <code>build</code> entry point; token and syntax-tree access live in the native <a href="/api/compiler/">compiler API</a> (<code>lexer()</code>, <code>parse()</code>, <code>print()</code>).</li>
   <li><strong>Source maps for builds.</strong> The <code>--sourcemap</code> flag crashes the browser engine, so it is shown disabled. The native CLI and API support it.</li>
   <li><strong>Serve, watch and dev.</strong> The engine has no sockets or threads; those subcommands are native only.</li>
 </ul>
