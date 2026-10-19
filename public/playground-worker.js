@@ -4,18 +4,24 @@
 // Protocol (main -> worker):
 //   { t: 'build',     id, entry, outdir, sources: {path: content}, args: string[] }
 //   { t: 'transform', id, source, loader, args: string[] }
+//   { t: 'lex',       id, source, language }      // language: html | css | js
+//   { t: 'parse',     id, source, language }
 //   { t: 'cancel',    id }                       // best-effort; drops a queued result
 // Protocol (worker -> main):
 //   { t: 'ready',       version }
 //   { t: 'log',         id, line }
 //   { t: 'done',        id, ok, code, files: {rel: content}, log, measureMs }
 //   { t: 'transformed', id, ok, code, output, log, measureMs }
+//   { t: 'lexed',       id, ok, tokens, comments, count, errors, warnings, measureMs }
+//   { t: 'parsed',      id, ok, nodes|rules|symbols|…, errors, warnings, measureMs }
 //   { t: 'error',       id, message }
 //
 // `build` runs the engine's `build` subcommand over an in-memory file map and
 // returns the emitted files. `transform` runs the engine's `transform`
-// subcommand (source in on stdin, printed code out on stdout). Lexer and AST
-// are not exposed by the browser engine and are deliberately absent here.
+// subcommand (source in on stdin, printed code out on stdout). `lex` and
+// `parse` send one request each through the engine's `guchho_service` C ABI —
+// the same service dispatch the npm package talks to — so the browser gets
+// the real token stream and tree summary, not a placeholder.
 //
 // Each `transform` gets a FRESH engine instance. The engine reads stdin through
 // a process-global C++ `std::cin`, and once that stream hits EOF it stays at
@@ -47,6 +53,10 @@ self.addEventListener('message', (event) => {
     handleBuild(msg)
   } else if (msg.t === 'transform') {
     handleTransform(msg)
+  } else if (msg.t === 'lex') {
+    handleLex(msg)
+  } else if (msg.t === 'parse') {
+    handleParse(msg)
   } else if (msg.t === 'cancel') {
     state.cancelled.add(msg.id)
   } else if (msg.t === 'ping') {
@@ -206,6 +216,66 @@ async function handleTransform(msg) {
     const message = err && err.message ? String(err.message) : String(err)
     post({ t: 'error', id, message, measureMs: Math.round(now() - measureStart) })
   }
+}
+
+// One request through the engine's service dispatch, in this worker. The
+// reply is JSON: tokens/nodes/rules/symbols plus errors and warnings. A
+// refusal carries an "error" string instead of a populated errors list.
+function serviceCall(engine, payload) {
+  const reply = engine.ccall('guchho_service', 'string', ['string'], [JSON.stringify(payload)])
+  const response = JSON.parse(reply)
+  if (response && typeof response.error === 'string') {
+    throw new Error(response.error)
+  }
+  return response
+}
+
+async function handleServiceStage(msg, replyT, command) {
+  const { id, source, language } = msg
+  const measureStart = now()
+  try {
+    const engine = await getBuildEngine()
+    if (state.cancelled.has(id)) return
+    const payload = { command: command + '-' + language, input: source == null ? '' : String(source) }
+    if (command === 'lex' && language === 'css') payload.includeComments = true
+    const response = serviceCall(engine, payload)
+    const measureMs = Math.round(now() - measureStart)
+    if (state.cancelled.has(id)) return
+    post({
+      t: replyT,
+      id,
+      ok: true,
+      language,
+      tokens: response.tokens,
+      comments: response.comments,
+      count: response.count,
+      nodes: response.nodes,
+      nodeCount: response.nodeCount,
+      importRecords: response.importRecords,
+      inlineScripts: response.inlineScripts,
+      inlineStyles: response.inlineStyles,
+      rules: response.rules,
+      ruleCount: response.ruleCount,
+      symbolCount: response.symbolCount,
+      partCount: response.partCount,
+      symbols: response.symbols,
+      parseOk: response.ok,
+      errors: response.errors || [],
+      warnings: response.warnings || [],
+      measureMs,
+    })
+  } catch (err) {
+    const message = err && err.message ? String(err.message) : String(err)
+    post({ t: 'error', id, message, measureMs: Math.round(now() - measureStart) })
+  }
+}
+
+function handleLex(msg) {
+  return handleServiceStage(msg, 'lexed', 'lex')
+}
+
+function handleParse(msg) {
+  return handleServiceStage(msg, 'parsed', 'parse')
 }
 
 // A non-zero exit may surface as a thrown ExitStatus carrying the code, or as a
