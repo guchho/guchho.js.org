@@ -83,6 +83,15 @@ async function mkdirs(p) {
   await fs.mkdir(p, { recursive: true })
 }
 
+async function lastModified(file) {
+  try {
+    const stat = await fs.stat(file)
+    return stat.mtime.toISOString().slice(0, 10)
+  } catch {
+    return new Date().toISOString().slice(0, 10)
+  }
+}
+
 function renderToc(toc) {
   if (!toc.length) return ''
   const items = toc
@@ -92,6 +101,93 @@ function renderToc(toc) {
     )
     .join('')
   return `<nav class="toc-nav" aria-label="On this page"><p class="toc-title">On this page</p><ol class="toc-list">${items}</ol></nav>`
+}
+
+function humanizeSegment(segment) {
+  const s = segment.replace(/-/g, ' ').trim()
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function breadcrumbJsonLd(route) {
+  const site = siteConfig.site
+  const segments = route.split('/').filter(Boolean)
+  const items = [{ name: 'Home', item: `${site.url}/` }]
+  let path = ''
+  for (const segment of segments) {
+    path += `/${segment}/`
+    items.push({ name: humanizeSegment(segment), item: `${site.url}${path}` })
+  }
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((entry, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: entry.name,
+      item: entry.item,
+    })),
+  }
+}
+
+function websiteJsonLd() {
+  const site = siteConfig.site
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: site.name,
+    url: `${site.url}/`,
+    description: site.description,
+    publisher: { '@type': 'Organization', name: site.name, logo: { '@type': 'ImageObject', url: `${site.url}/logo.png` } },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${site.url}/?q={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
+  }
+}
+
+function softwareApplicationJsonLd() {
+  const site = siteConfig.site
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: site.name,
+    url: `${site.url}/`,
+    description: site.description,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Windows, macOS, Linux',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    softwareVersion: '1.0.8',
+    image: `${site.url}/logo.png`,
+    license: 'https://github.com/guchho/guchho/blob/main/LICENSE',
+    codeRepository: site.github,
+    downloadUrl: site.npm,
+  }
+}
+
+function blogPostingJsonLd({ route, title, description, date }) {
+  const site = siteConfig.site
+  const url = `${site.url}${route}`
+  const post = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: title,
+    url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    image: `${site.url}/logo.png`,
+    author: { '@type': 'Organization', name: site.name, url: `${site.url}/` },
+    publisher: {
+      '@type': 'Organization',
+      name: site.name,
+      logo: { '@type': 'ImageObject', url: `${site.url}/logo.png` },
+    },
+  }
+  if (description) post.description = description
+  if (date) {
+    post.datePublished = date
+    post.dateModified = date
+  }
+  return post
 }
 
 async function resolveGuchho() {
@@ -152,6 +248,8 @@ async function compose({
   benchmarkHtml = '',
   substituteBody = false,
   headExtra = '',
+  ogType = 'website',
+  publishedTime = '',
 }) {
   const prefix = '../'.repeat(route.split('/').filter(Boolean).length + 2)
   const url = siteConfig.site.url + route
@@ -165,17 +263,29 @@ async function compose({
     .join('\n')
   const canonical = `<link rel="canonical" href="${url}" />`
   const ogImage = `${site.url}/logo.png`
+  const ogImageAlt = `${site.name} logo`
+  const articleMeta =
+    ogType === 'article' && publishedTime
+      ? [`<meta property="article:published_time" content="${escapeHtml(publishedTime)}" />`]
+      : []
+  const feedLink = `<link rel="alternate" type="application/atom+xml" title="${escapeHtml(site.name)} blog" href="${site.url}/blog/feed.xml" />`
   const seo = [
     canonical,
+    feedLink,
     `<meta property="og:site_name" content="${escapeHtml(site.name)}" />`,
+    '<meta property="og:locale" content="en_US" />',
     `<meta property="og:title" content="${escapeHtml(title)}" />`,
     description ? `<meta property="og:description" content="${escapeHtml(description)}" />` : '',
     `<meta property="og:url" content="${url}" />`,
-    '<meta property="og:type" content="website" />',
+    `<meta property="og:type" content="${ogType}" />`,
     `<meta property="og:image" content="${ogImage}" />`,
+    `<meta property="og:image:alt" content="${escapeHtml(ogImageAlt)}" />`,
+    ...articleMeta,
     '<meta name="twitter:card" content="summary_large_image" />',
     `<meta name="twitter:title" content="${escapeHtml(title)}" />`,
     description ? `<meta name="twitter:description" content="${escapeHtml(description)}" />` : '',
+    `<meta name="twitter:image" content="${ogImage}" />`,
+    `<meta name="twitter:image:alt" content="${escapeHtml(ogImageAlt)}" />`,
   ]
     .filter(Boolean)
     .join('\n')
@@ -226,10 +336,10 @@ async function main() {
   console.log(`files: ${files.length}`)
   for (const file of files) {
     const source = await fs.readFile(path.join(docsRoot, file.split('/').join(path.sep)), 'utf8')
-    const { title, description, content } = parseFrontmatter(source)
+    const { title, description, date, content } = parseFrontmatter(source)
     const route = routeMap.get(file)
     const { html, toc, anchors, hasH1 } = render(file, content, routeMap)
-    pages.push({ file, route, title, description, html, toc, anchors, hasH1 })
+    pages.push({ file, route, title, description, date, html, toc, anchors, hasH1 })
   }
 
   const layoutSrc = await fs.readFile(path.join(COMPONENTS, 'layout.html'), 'utf8')
@@ -258,6 +368,11 @@ async function main() {
 
     const body = ['<article class="doc-body">', `${contentHtml}`, sourceNote, '</article>'].join('\n')
 
+    const isBlogPost = page.file.startsWith('blog/') && page.file !== 'blog/README.md'
+    const published = page.date || ''
+    const jsonLd = [breadcrumbJsonLd(page.route)]
+    if (isBlogPost) jsonLd.push(blogPostingJsonLd({ route: page.route, title, description: page.description, date: published }))
+
     const html = await compose({
       layoutSrc,
       headerSrc,
@@ -270,12 +385,15 @@ async function main() {
       sidebarHtml,
       benchmarkHtml,
       pageClass: 'doc-page',
+      ogType: isBlogPost ? 'article' : 'website',
+      publishedTime: published,
     })
 
+    const lastmod = await lastModified(path.join(docsRoot, page.file.split('/').join(path.sep)))
     const outFile = path.join(PAGES, routeToFile(page.route).split('/').join(path.sep))
     await mkdirs(path.dirname(outFile))
     await fs.writeFile(outFile, html, 'utf8')
-    rendered.push({ route: page.route, file: page.file, title, description: page.description, html, anchors: page.anchors })
+    rendered.push({ route: page.route, file: page.file, title, description: page.description, html, anchors: page.anchors, lastmod, published, jsonLd })
   }
 
   // Authored pages (src/site/*.html). "home.html" -> "/", "examples.html" -> "/examples/".
@@ -293,6 +411,7 @@ async function main() {
         ? '<link rel="stylesheet" href="{{rootPrefix}}src/styles/playground.css" />'
         : ''
     const body = await fs.readFile(path.join(siteDir, entry.name), 'utf8')
+    const jsonLd = name === 'home' ? [websiteJsonLd(), softwareApplicationJsonLd(), breadcrumbJsonLd(route)] : [breadcrumbJsonLd(route)]
     const html = await compose({
       layoutSrc,
       headerSrc,
@@ -308,10 +427,11 @@ async function main() {
       substituteBody: true,
       headExtra,
     })
+    const lastmod = await lastModified(path.join(siteDir, entry.name))
     const outFile = path.join(PAGES, routeToFile(route).split('/').join(path.sep))
     await mkdirs(path.dirname(outFile))
     await fs.writeFile(outFile, html, 'utf8')
-    rendered.push({ route, file: '', title: pageTitle, description: siteConfig.site.description, html, anchors: new Set() })
+    rendered.push({ route, file: '', title: pageTitle, description: siteConfig.site.description, html, anchors: new Set(), lastmod, published: '', jsonLd })
   }
 
   console.log(`pages: ${rendered.length}`)
@@ -374,6 +494,11 @@ async function main() {
 
     await repairOutputPaths(rendered)
 
+    // JSON-LD is injected after the bundler runs: guchho parses inline scripts
+    // as JavaScript and rejects raw JSON ("{\"@context\":…}" is not valid
+    // statement syntax), so it cannot travel through the HTML pipeline.
+    await injectJsonLd(rendered)
+
     // Publish-time files guchho does not rewrite (og image, CNAME, robots, sitemap).
     await copyPublic()
 
@@ -385,8 +510,11 @@ async function main() {
     )
 
     const routesXml = rendered
-      .map((p) => `${siteConfig.site.url}${p.route}`)
-      .map((loc) => `<url><loc>${escapeHtml(loc)}</loc></url>`)
+      .map((p) => {
+        const loc = `${siteConfig.site.url}${p.route}`
+        const lastmod = p.lastmod ? `<lastmod>${p.lastmod}</lastmod>` : ''
+        return `<url><loc>${escapeHtml(loc)}</loc>${lastmod}</url>`
+      })
       .join('')
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routesXml}</urlset>\n`
     await fs.writeFile(path.join(DIST, 'sitemap.xml'), sitemap, 'utf8')
@@ -395,6 +523,9 @@ async function main() {
       `User-agent: *\nAllow: /\n\nSitemap: ${siteConfig.site.url}/sitemap.xml\n`,
       'utf8',
     )
+
+    await writeBlogFeed(rendered)
+    await write404Page()
 
     console.log(`\nBuilt ${rendered.length} pages into dist/`)
     await verifyOutput(rendered)
@@ -410,6 +541,150 @@ async function main() {
   } finally {
     await fs.writeFile(configPath, originalConfig, 'utf8')
   }
+}
+
+// Inject <script type="application/ld+json"> blocks into the built pages'
+// <head>. Done here (not in the HTML pipeline) because guchho parses inline
+// scripts as JavaScript and rejects raw JSON-LD.
+async function injectJsonLd(pages) {
+  let injected = 0
+  for (const page of pages) {
+    if (!page.jsonLd || !page.jsonLd.length) continue
+    const file = path.join(DIST, routeToFile(page.route).split('/').join(path.sep))
+    if (!(await exists(file))) continue
+    const html = await fs.readFile(file, 'utf8')
+    const scripts = page.jsonLd
+      .map((obj) => `<script type="application/ld+json">${JSON.stringify(obj)}</script>`)
+      .join('\n')
+    if (html.includes('</head>')) {
+      await fs.writeFile(file, html.replace('</head>', `    ${scripts}\n  </head>`), 'utf8')
+      injected++
+    }
+  }
+  if (injected) console.log(`json-ld: injected structured data into ${injected} page(s)`)
+}
+
+// Atom feed for the blog. Entries come from rendered pages under /blog/ that
+// carry a date in their frontmatter, newest first.
+async function writeBlogFeed(rendered) {
+  const site = siteConfig.site
+  const posts = rendered
+    .filter((p) => p.file.startsWith('blog/') && p.file !== 'blog/README.md' && p.published)
+    .sort((a, b) => b.published.localeCompare(a.published))
+  if (!posts.length) return
+
+  const updated = posts[0].published
+  const escapeXml = (s) =>
+    String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+  const entries = posts
+    .map((post) => {
+      const url = `${site.url}${post.route}`
+      const summary = post.description ? `<summary>${escapeXml(post.description)}</summary>` : ''
+      return [
+        '<entry>',
+        `<title>${escapeXml(post.title)}</title>`,
+        `<link href="${escapeXml(url)}" rel="alternate" type="text/html"/>`,
+        `<id>${escapeXml(url)}</id>`,
+        `<updated>${post.published}</updated>`,
+        summary,
+        '</entry>',
+      ]
+        .filter(Boolean)
+        .join('')
+    })
+    .join('')
+
+  const feed = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<feed xmlns="http://www.w3.org/2005/Atom">',
+    `<title>${escapeXml(site.name)} blog</title>`,
+    `<subtitle>${escapeXml(site.description)}</subtitle>`,
+    `<link href="${site.url}/blog/feed.xml" rel="self" type="application/atom+xml"/>`,
+    `<link href="${site.url}/blog/" rel="alternate" type="text/html"/>`,
+    `<id>${site.url}/blog/feed.xml</id>`,
+    `<updated>${updated}</updated>`,
+    entries,
+    '</feed>',
+    '',
+  ].join('\n')
+
+  await mkdirs(path.join(DIST, 'blog'))
+  await fs.writeFile(path.join(DIST, 'blog', 'feed.xml'), feed, 'utf8')
+  console.log(`feed: ${posts.length} blog post(s) -> dist/blog/feed.xml`)
+}
+
+// GitHub Pages serves dist/404.html for any missing path, so the page is
+// fully self-contained: root-relative asset URLs would break at arbitrary
+// depths, and hashed bundle names are not known to this step.
+async function write404Page() {
+  const site = siteConfig.site
+  const title = `Page not found · ${site.name}`
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, follow" />
+    <title>${escapeHtml(title)}</title>
+    <meta name="description" content="The page you were looking for does not exist." />
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: #ffffff;
+        color: #1c2128;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background: #0d1117; color: #e6edf3; }
+        a { color: #79b8ff; }
+      }
+      .notfound { text-align: center; padding: 32px; max-width: 44ch; }
+      .notfound-code {
+        font-size: 64px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin: 0 0 8px;
+        color: #4c1d95;
+      }
+      @media (prefers-color-scheme: dark) { .notfound-code { color: #a78bfa; } }
+      .notfound h1 { font-size: 24px; margin: 0 0 10px; }
+      .notfound p { margin: 0 0 18px; line-height: 1.6; color: #6b7686; }
+      @media (prefers-color-scheme: dark) { .notfound p { color: #8b949e; } }
+      .notfound a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #4338ca;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid #d7dbe2;
+        border-radius: 8px;
+        padding: 8px 14px;
+      }
+      .notfound a:hover { border-color: #c2c8d1; }
+      @media (prefers-color-scheme: dark) {
+        .notfound a { border-color: #30363d; }
+        .notfound a:hover { border-color: #3d444d; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="notfound">
+      <p class="notfound-code">404</p>
+      <h1>Page not found</h1>
+      <p>The page you were looking for does not exist or has moved.</p>
+      <a href="/">Back to the ${escapeHtml(site.name)} home page</a>
+    </main>
+  </body>
+</html>
+`
+  await fs.writeFile(path.join(DIST, '404.html'), html, 'utf8')
 }
 
 async function copyPublic() {
