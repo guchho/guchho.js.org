@@ -2209,6 +2209,9 @@ a[target="_blank"]:not(.gh-link)::after {
     transform: translateX(0);
     box-shadow: var(--shadow);
   }
+  body.home .sidebar {
+    display: block;
+  }
   .sidebar-logo {
     display: block;
     font-weight: 700;
