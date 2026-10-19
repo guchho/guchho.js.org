@@ -1,7 +1,8 @@
 // Client wrapper around the playground engine worker. Owns worker lifetime and
-// request ids (so stale requests are dropped). Exposes the two things the
-// browser engine actually supports: `build` (emits files) and `transform`
-// (prints one source to stdout). Lexer/AST are not exposed by the engine.
+// request ids (so stale requests are dropped). Exposes the four things the
+// engine supports: `build` (emits files), `transform` (prints one source to
+// stdout), and — since the engine's service ABI reached the browser build —
+// `lex` (token stream) and `parse` (tree summary).
 
 export function createEngineClient(workerUrl) {
   let worker = null
@@ -48,6 +49,31 @@ export function createEngineClient(workerUrl) {
           measureMs: msg.measureMs,
           id: msg.id,
         })
+      } else if (msg.t === 'lexed' || msg.t === 'parsed') {
+        pending.delete(msg.id)
+        entry.resolve({
+          kind: msg.t === 'lexed' ? 'lex' : 'parse',
+          ok: msg.ok,
+          language: msg.language,
+          tokens: msg.tokens,
+          comments: msg.comments,
+          count: msg.count,
+          nodes: msg.nodes,
+          nodeCount: msg.nodeCount,
+          importRecords: msg.importRecords,
+          inlineScripts: msg.inlineScripts,
+          inlineStyles: msg.inlineStyles,
+          rules: msg.rules,
+          ruleCount: msg.ruleCount,
+          symbolCount: msg.symbolCount,
+          partCount: msg.partCount,
+          symbols: msg.symbols,
+          parseOk: msg.parseOk,
+          errors: msg.errors,
+          warnings: msg.warnings,
+          measureMs: msg.measureMs,
+          id: msg.id,
+        })
       } else if (msg.t === 'error') {
         pending.delete(msg.id)
         entry.reject(new Error(msg.message || 'The engine failed'))
@@ -91,6 +117,14 @@ export function createEngineClient(workerUrl) {
 
     transform({ source, loader, args, onLog, onVersion }) {
       return request({ t: 'transform', source, loader, args }, { onLog, onVersion })
+    },
+
+    lex({ source, language, onLog, onVersion }) {
+      return request({ t: 'lex', source, language }, { onLog, onVersion })
+    },
+
+    parse({ source, language, onLog, onVersion }) {
+      return request({ t: 'parse', source, language }, { onLog, onVersion })
     },
 
     dispose() {
