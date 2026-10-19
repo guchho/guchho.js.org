@@ -73,6 +73,9 @@
     }
   }
 
+  const COPY_ICON = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-1a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4.5V9A1.5 1.5 0 0 0 4 10.5h1.5"/></svg>'
+  const CHECK_ICON = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5"/></svg>'
+
   // Copy button on every code block.
   function addCopyButtons() {
     document.querySelectorAll('div.codeblock').forEach((block) => {
@@ -81,19 +84,19 @@
       button.type = 'button'
       button.className = 'copy-button'
       button.setAttribute('aria-label', 'Copy code to clipboard')
-      button.textContent = 'Copy'
+      button.innerHTML = `${COPY_ICON}<span>Copy</span>`
       button.addEventListener('click', async () => {
         const pre = block.querySelector('pre')
         if (!pre) return
         const text = pre.textContent ?? ''
         try {
           await navigator.clipboard.writeText(text)
-          button.textContent = 'Copied'
+          button.innerHTML = `${CHECK_ICON}<span>Copied</span>`
         } catch {
-          button.textContent = 'Select manually'
+          button.innerHTML = `${COPY_ICON}<span>Select manually</span>`
         }
         setTimeout(() => {
-          button.textContent = 'Copy'
+          button.innerHTML = `${COPY_ICON}<span>Copy</span>`
         }, 1500)
       })
       block.appendChild(button)
@@ -345,6 +348,13 @@
         setOpen(true)
       }
     })
+
+    // Open the search panel for ?q=… (used by the SearchAction sitelink).
+    const initialQuery = new URLSearchParams(window.location.search).get('q')
+    if (initialQuery) {
+      input.value = initialQuery
+      setOpen(true)
+    }
   }
 
   // Scroll-spy for the table of contents.
