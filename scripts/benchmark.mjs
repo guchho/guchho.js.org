@@ -20,8 +20,8 @@ const GRID = 'rgba(127,127,127,0.25)'
 
 // The load animation duration scales with each bar's value (longer bar = slower
 // grow), clamped so even tiny bars stay visible and huge bars stay snappy.
-const MIN_BAR_DURATION = 2.8
-const MAX_BAR_DURATION = 16
+const MIN_BAR_DURATION = 4.5
+const MAX_BAR_DURATION = 24
 
 function escapeHtml(s) {
   return String(s)
@@ -116,7 +116,7 @@ export async function renderBenchmark() {
           : `<div style="${valueBase}left:${pct.toFixed(3)}%;margin-left:8px;">${value}</div>`
       return (
         `<div class="bench-track" style="position:absolute;left:0;top:${top}px;width:${pct.toFixed(3)}%;height:${barH}px;background:${TRACK}"></div>` +
-        `<div class="bench-fill" style="position:absolute;left:0;top:${top}px;width:${pct.toFixed(3)}%;height:${barH}px;background:${BAR};animation-duration:${duration.toFixed(2)}s;animation-delay:${(i * 0.12).toFixed(2)}s"></div>` +
+        `<div class="bench-fill" style="position:absolute;left:0;top:${top}px;width:${pct.toFixed(3)}%;height:${barH}px;background:${BAR};animation-duration:${duration.toFixed(2)}s;animation-delay:${(i * 0.2).toFixed(2)}s"></div>` +
         `<div style="position:absolute;right:100%;top:${i * rowH}px;width:calc(var(--bench-gutter) - 8px);height:${rowH}px;line-height:${rowH}px;text-align:right;white-space:nowrap;margin-right:8px;">${label}</div>` +
         valueEl
       )
