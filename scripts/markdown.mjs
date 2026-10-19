@@ -45,11 +45,15 @@ function highlight(code, lang) {
 }
 
 export function parseFrontmatter(md) {
+  // gray-matter parses unquoted YAML dates into Date objects.
+  const formatDate = (v) =>
+    typeof v === 'string' ? v : v instanceof Date && !Number.isNaN(v.getTime()) ? v.toISOString().slice(0, 10) : ''
   try {
     const { data, content } = matter(md)
     return {
       title: typeof data.title === 'string' ? data.title : '',
       description: typeof data.description === 'string' ? data.description : '',
+      date: formatDate(data.date),
       content,
     }
   } catch {
@@ -67,6 +71,7 @@ export function parseFrontmatter(md) {
     return {
       title: front.title || '',
       description: front.description || '',
+      date: front.date || '',
       content,
     }
   }
