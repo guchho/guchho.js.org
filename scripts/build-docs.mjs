@@ -404,7 +404,7 @@ async function main() {
     const name = entry.name.replace(/\.html$/, '')
     const route = name === 'home' ? '/' : `/${name}/`
     if (knownDocRoutes.has(route)) continue
-    const pageTitle = siteTitles[name] ? `${siteTitles[name]} · Guchho` : 'Guchho | ' + capitalize(name)
+    const pageTitle = name === 'home' ? 'Guchho — Fast Web Bundler' : siteTitles[name] ? `${siteTitles[name]} · Guchho` : 'Guchho — ' + capitalize(name)
     const pageClass = name === 'home' ? 'home' : name === 'playground' ? 'playground' : 'doc-page'
     const headExtra =
       name === 'playground'
