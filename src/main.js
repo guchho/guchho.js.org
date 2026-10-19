@@ -28,6 +28,8 @@
   function setSidebar(open) {
     if (!sidebar) return
     sidebar.classList.toggle('is-open', open)
+    document.body.classList.toggle('sidebar-open', open)
+    document.body.classList.toggle('no-scroll', open)
     const btn = document.querySelector('[data-toggle-sidebar]')
     if (btn) btn.setAttribute('aria-expanded', String(open))
   }
