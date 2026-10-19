@@ -179,6 +179,9 @@ div.codeblock pre {
   position: absolute;
   top: 8px;
   right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 600;
@@ -188,6 +191,10 @@ div.codeblock pre {
   border-radius: 6px;
   padding: 3px 9px;
   cursor: pointer;
+}
+
+.copy-button svg {
+  display: block;
 }
 .copy-button:hover {
   color: var(--code-btn-text-hover);
