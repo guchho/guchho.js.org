@@ -5,8 +5,9 @@
     <p class="pg-lede">
       The real Guchho bundler compiled to
       <a href="https://www.npmjs.com/package/@guchho/wasm" target="_blank" rel="noopener noreferrer">WebAssembly</a>
-      (<code>@guchho/wasm</code>). Edit a file, press <kbd>Build</kbd> (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) to bundle it,
-      or <kbd>Print</kbd> to run a single-file transform. The engine runs in a Web Worker in this tab — nothing is uploaded.
+      (<code>@guchho/wasm</code>). Edit a file, press <kbd>Build</kbd> (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) to bundle it —
+      the <strong>Lexer</strong> and <strong>AST</strong> tabs show the engine's token stream and parse summary for the same source.
+      The engine runs in a Web Worker in this tab — nothing is uploaded.
     </p>
   </header>
 
@@ -17,7 +18,7 @@
     </label>
     <div class="pg-actions">
       <button class="btn btn-primary" type="button" data-pg-build>Build</button>
-      <button class="btn btn-secondary" type="button" data-pg-print>Print</button>
+
       <button class="btn btn-secondary" type="button" data-pg-settings-toggle aria-expanded="false" aria-controls="pg-settings">Options</button>
       <button class="btn btn-secondary" type="button" data-pg-reset>Reset</button>
       <button class="btn btn-secondary" type="button" data-pg-copy>Copy</button>
@@ -48,14 +49,8 @@
         <input type="checkbox" data-pg-opt-minify />
         <span>Minify</span>
       </label>
-      <label class="pg-field pg-field-check">
-        <input type="checkbox" data-pg-opt-bundle />
-        <span>Bundle</span>
-      </label>
-      <label class="pg-field pg-field-check pg-field-disabled" title="--sourcemap aborts the browser engine">
-        <input type="checkbox" disabled />
-        <span>Sourcemap <em>(unavailable in the browser engine)</em></span>
-      </label>
+
+
     </div>
   </aside>
 
@@ -86,7 +81,7 @@
 
       <div class="pg-outview" data-pg-out-view="output">
         <div class="pg-empty" data-pg-output-empty>
-          <p>Press <strong>Build</strong> to bundle this file, or <strong>Print</strong> to run a transform. The generated code appears here.</p>
+          <p>Press <strong>Build</strong> to bundle this file. The generated code appears here.</p>
         </div>
         <div class="pg-files" data-pg-files hidden>
           <div class="pg-filelist" data-pg-filelist role="tablist" aria-label="Generated files"></div>
