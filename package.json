@@ -20,10 +20,10 @@
     "clean": "node scripts/clean.mjs"
   },
   "devDependencies": {
-    "@guchho/wasm": "^1.0.7",
+    "@guchho/wasm": "^1.0.8",
     "fflate": "^0.8.3",
     "gray-matter": "^4.0.3",
-    "guchho": "^1.0.6",
+    "guchho": "^1.0.8",
     "highlight.js": "^11.12.0",
     "markdown-it": "^15.0.2",
     "markdown-it-anchor": "^10.0.0"
