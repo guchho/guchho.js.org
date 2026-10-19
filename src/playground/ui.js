@@ -1,7 +1,8 @@
 // Playground UI: a two-panel, single-file playground. The left panel is the
-// source editor; the right panel shows generated output, diagnostics, and the
-// (browser-unavailable) inspector tabs. Build and Print run the real WASM
-// engine in a Web Worker — Build emits files, Print runs `transform`.
+// source editor; the right panel shows generated output, diagnostics, the
+// lexer's token stream, and the parse tree summary. Build runs the real WASM
+// engine in a Web Worker — it emits files, and the Lexer/AST tabs run the
+// engine's `lex`/`parse` service commands over the same worker.
 
 import { LANGUAGES, getLanguage } from './languages.js'
 import { exampleFor } from './examples.js'
@@ -12,15 +13,12 @@ import { parseDiagnostics } from './parse.js'
 
 const DEFAULT_OPTIONS = {
   target: 'es2020',
-  minify: true,
+  minify: false,
   format: 'esm',
   platform: 'browser',
   loader: 'auto',
-  bundle: false,
+  bundle: true,
 }
-
-const SVG_INFO =
-  '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.2v4M8 4.8v.6"/></svg>'
 
 export function initPlayground() {
   const root = document.querySelector('[data-playground]')
@@ -34,7 +32,7 @@ export function initPlayground() {
   const els = {
     lang: $('[data-pg-lang]'),
     build: $('[data-pg-build]'),
-    print: $('[data-pg-print]'),
+
     reset: $('[data-pg-reset]'),
     copy: $('[data-pg-copy]'),
     settings: $('[data-pg-settings]'),
@@ -57,7 +55,7 @@ export function initPlayground() {
     optFormat: $('[data-pg-opt-format]'),
     optPlatform: $('[data-pg-opt-platform]'),
     optLoader: $('[data-pg-opt-loader]'),
-    optBundle: $('[data-pg-opt-bundle]'),
+
   }
 
   let language = getLanguage('html')
@@ -66,6 +64,7 @@ export function initPlayground() {
   let dirty = false
   let busy = false
   let currentOutput = ''
+  let inspectKey = ''
 
   init()
 
@@ -81,9 +80,8 @@ export function initPlayground() {
     loadExample()
     bindEvents()
     applyCapabilities()
-    renderUnavailable(els.lexer, UNAVAILABLE.lexer)
-    renderUnavailable(els.ast, UNAVAILABLE.ast)
     renderErrors(null, null)
+    renderInspectEmpty()
     showOutTab('output')
   }
 
@@ -109,7 +107,7 @@ export function initPlayground() {
     if (els.optPlatform) els.optPlatform.value = options.platform
     if (els.optLoader) els.optLoader.value = options.loader
     if (els.optMinify) els.optMinify.checked = options.minify
-    if (els.optBundle) els.optBundle.checked = options.bundle
+
   }
 
   function fillSelect(select, values) {
@@ -127,8 +125,10 @@ export function initPlayground() {
     editor.setLanguage(language.hljs)
     dirty = false
     currentOutput = ''
+    inspectKey = ''
     showOutputEmpty()
     renderErrors(null, null)
+    renderInspectEmpty()
     if (els.filename) els.filename.textContent = language.entry
   }
 
@@ -138,15 +138,10 @@ export function initPlayground() {
     setEnabled(els.optPlatform, c.platform, 'Not applicable to this language')
     setEnabled(els.optTarget, c.target, 'Not applicable to this language')
     setEnabled(els.optMinify, c.minify, 'Not applicable to this language')
-    setEnabled(els.optBundle, c.bundle, 'Not applicable to this language')
+
     setEnabled(els.optLoader, true)
 
-    const canPrint = c.print !== false
-    if (els.print) {
-      els.print.disabled = !canPrint
-      if (canPrint) els.print.removeAttribute('title')
-      else els.print.setAttribute('title', 'Print is not supported for HTML — use Build')
-    }
+    const canPrint = false
   }
 
   function setEnabled(el, enabled, reason) {
@@ -165,7 +160,7 @@ export function initPlayground() {
   function setBusy(next, label) {
     busy = next
     if (els.build) els.build.disabled = next
-    if (els.print) els.print.disabled = next || language.capabilities.print === false
+    if (els.print) els.print.disabled = true
     if (next) setStatus(label || 'Working…', 'busy')
   }
 
@@ -260,29 +255,240 @@ export function initPlayground() {
     return wrap
   }
 
-  function renderUnavailable(container, spec) {
+  // --- Inspectors (Lexer / AST) -------------------------------------------
+  //
+  // Both tabs run the engine's service commands (lex-<lang> / parse-<lang>)
+  // over the worker, on the editor's current source, keyed by language+source
+  // so a tab switch reuses the last result until the buffer changes.
+
+  const MAX_TOKENS = 400
+
+  function engineLanguage() {
+    // The engine has one lexer/parser per source family. JSON rides the JS
+    // one (a JSON document is a JS expression); everything else maps through
+    // the language's family.
+    return language.family === 'json' ? 'js' : language.family
+  }
+
+  function inspectCacheKey() {
+    return engineLanguage() + '::' + els.textarea.value
+  }
+
+  function renderInspectEmpty() {
+    renderInspectNote(
+      els.lexer,
+      "Press Build to lex this file. The engine's token stream appears here.",
+    )
+    renderInspectNote(
+      els.ast,
+      "Press Build to parse this file. The engine's tree summary appears here.",
+    )
+  }
+
+  function renderInspectNote(container, text, cls) {
     if (!container) return
     container.replaceChildren()
-    const box = document.createElement('div')
-    box.className = 'pg-unavailable'
-
-    const icon = document.createElement('div')
-    icon.className = 'pg-unavailable-icon'
-    icon.innerHTML = SVG_INFO
-
-    const h = document.createElement('h3')
-    h.className = 'pg-inspect-h'
-    h.textContent = spec.title
-
     const p = document.createElement('p')
-    p.textContent = spec.reason
+    p.className = cls || 'pg-inspect-note'
+    p.textContent = text
+    container.appendChild(p)
+  }
 
-    const code = document.createElement('pre')
-    code.className = 'pg-unavailable-code'
-    code.textContent = spec.hint
+  function renderLexer(result) {
+    const container = els.lexer
+    if (!container) return
+    container.replaceChildren()
 
-    box.append(icon, h, p, code)
-    container.appendChild(box)
+    // CSS reports comments as a separate list; fold them into the stream so
+    // the table reads in source order.
+    const tokens = (result.tokens || []).slice()
+    if (result.comments && result.comments.length) {
+      for (const c of result.comments) {
+        tokens.push({ kind: 'comment', value: c.text, start: c.start, line: c.line, column: c.column, length: c.length })
+      }
+      tokens.sort((a, b) => (a.start || 0) - (b.start || 0))
+    }
+    const count = result.count != null ? result.count + (result.comments ? result.comments.length : 0) : tokens.length
+
+    if (!tokens.length) {
+      renderInspectNote(container, 'No tokens - the source is empty.', 'pg-inspect-ok')
+      return
+    }
+
+    const head = document.createElement('p')
+    head.className = 'pg-inspect-ok'
+    head.textContent = `${count} token(s) · ${Math.round(result.measureMs || 0)} ms`
+    container.appendChild(head)
+
+    const table = document.createElement('table')
+    table.className = 'pg-table'
+    const thead = document.createElement('thead')
+    const hrow = document.createElement('tr')
+    for (const label of ['#', 'Kind', 'Value', 'Line', 'Col', 'Len']) {
+      const th = document.createElement('th')
+      th.textContent = label
+      hrow.appendChild(th)
+    }
+    thead.appendChild(hrow)
+    table.appendChild(thead)
+
+    const tbody = document.createElement('tbody')
+    const shown = tokens.slice(0, MAX_TOKENS)
+    shown.forEach((tok, i) => {
+      const tr = document.createElement('tr')
+      appendCell(tr, String(i + 1))
+      appendCell(tr, tok.kind)
+      appendCell(tr, truncate(tok.value, 60), 'pg-table-mono')
+      appendCell(tr, String(tok.line))
+      appendCell(tr, String(tok.column))
+      appendCell(tr, String(tok.length))
+      tbody.appendChild(tr)
+    })
+    table.appendChild(tbody)
+    container.appendChild(table)
+
+    if (tokens.length > shown.length) {
+      const p = document.createElement('p')
+      p.className = 'pg-inspect-note'
+      p.textContent = `Showing the first ${shown.length} of ${tokens.length} tokens.`
+      container.appendChild(p)
+    }
+  }
+
+  function renderAst(result) {
+    const container = els.ast
+    if (!container) return
+    container.replaceChildren()
+
+    const head = document.createElement('p')
+    head.className = result.parseOk === false ? 'pg-console-title is-error' : 'pg-inspect-ok'
+    head.textContent = astSummary(result)
+    container.appendChild(head)
+
+    if (result.parseOk === false) {
+      const p = document.createElement('p')
+      p.className = 'pg-inspect-note'
+      p.textContent = 'The parser reported a syntax error - see the Errors tab.'
+      container.appendChild(p)
+      return
+    }
+
+    if (result.nodes && result.nodes.length) {
+      container.appendChild(section('Nodes', result.nodes.map(formatHtmlNode), 'is-warn'))
+    }
+    if (result.rules && result.rules.length) {
+      container.appendChild(section('Rules', result.rules.map(formatCssRule), 'is-warn'))
+    }
+    if (result.symbols && result.symbols.length) {
+      container.appendChild(
+        section('Symbols', result.symbols.map((s) => `${s.name} · used ${s.useCount}x`), 'is-warn'),
+      )
+    }
+    const empty = !(result.nodes && result.nodes.length) &&
+      !(result.rules && result.rules.length) &&
+      !(result.symbols && result.symbols.length)
+    if (empty) {
+      renderInspectNote(container, 'The parse produced no summary for this source.', 'pg-inspect-ok')
+    }
+  }
+
+  function astSummary(result) {
+    const ms = `${Math.round(result.measureMs || 0)} ms`
+    if (language.family === 'html') {
+      return `${result.nodeCount ?? (result.nodes || []).length} node(s) · ${ms}`
+    }
+    if (language.family === 'css') {
+      return `${result.ruleCount ?? (result.rules || []).length} top-level rule(s) · ${ms}`
+    }
+    const parts = [`${result.parseOk === false ? 'parse failed' : 'parsed ok'} · ${ms}`]
+    if (result.partCount != null) parts.unshift(`${result.partCount} part(s)`)
+    return parts.join(' · ')
+  }
+
+  function formatHtmlNode(node) {
+    const pad = '  '.repeat(Math.max(0, node.depth || 0))
+    if (node.tag) {
+      const attrs = node.attributes && node.attributes.length ? ' ' + node.attributes.join(' ') : ''
+      return `${pad}<${node.tag}${attrs}>`
+    }
+    return pad + node.type
+  }
+
+  function formatCssRule(rule) {
+    return `${rule.kind} · offset ${rule.start}`
+  }
+
+  function appendCell(tr, text, cls) {
+    const td = document.createElement('td')
+    if (cls) td.className = cls
+    td.textContent = text
+    tr.appendChild(td)
+  }
+
+  function truncate(text, max) {
+    const s = String(text == null ? '' : text)
+    return s.length > max ? s.slice(0, max - 1) + '…' : s
+  }
+
+  function messageText(message) {
+    const text = String((message && message.text) || message || '')
+    const loc = message && message.location
+    if (loc && loc.line) {
+      const file = loc.file ? loc.file + ':' : ''
+      return `${text} (${file}${loc.line}:${loc.column})`
+    }
+    return text
+  }
+
+  // Runs lex and parse for the current buffer unless the tabs already hold a
+  // result for it. Called after every Build, and on a lazy tab open.
+  async function refreshInspectors({ force = false } = {}) {
+    const key = inspectCacheKey()
+    if (!force && key === inspectKey) return
+    inspectKey = key
+    const source = els.textarea.value
+    const lang = engineLanguage()
+    const [lex, parse] = await Promise.allSettled([
+      engine.lex({ source, language: lang, onVersion }),
+      engine.parse({ source, language: lang, onVersion }),
+    ])
+    if (key !== inspectKey) return // a newer buffer won the race
+
+    if (lex.status === 'fulfilled') {
+      renderLexer(lex.value)
+      renderServiceDiagnostics(lex.value)
+    } else {
+      renderInspectNote(
+        els.lexer,
+        `Lex failed: ${(lex.reason && lex.reason.message) || lex.reason}`,
+        'pg-console-title is-error',
+      )
+    }
+
+    if (parse.status === 'fulfilled') {
+      renderAst(parse.value)
+      renderServiceDiagnostics(parse.value)
+    } else {
+      renderInspectNote(
+        els.ast,
+        `Parse failed: ${(parse.reason && parse.reason.message) || parse.reason}`,
+        'pg-console-title is-error',
+      )
+    }
+  }
+
+  // Folds a lex/parse result's engine diagnostics into the Errors tab,
+  // appending so build diagnostics already rendered there stay put.
+  function renderServiceDiagnostics(result) {
+    const errors = (result.errors || []).map(messageText)
+    const warnings = (result.warnings || []).map(messageText)
+    if (!errors.length && !warnings.length) return
+    const container = els.errors
+    if (!container) return
+    // Drop the idle placeholder before appending real diagnostics.
+    container.querySelectorAll('.pg-inspect-note').forEach((n) => n.remove())
+    if (errors.length) container.appendChild(section('Lexer / parser errors', errors, 'is-error'))
+    if (warnings.length) container.appendChild(section('Lexer / parser warnings', warnings, 'is-warn'))
   }
 
   // --- Actions ------------------------------------------------------------
@@ -308,6 +514,7 @@ export function initPlayground() {
       const entries = Object.keys(result.files || {})
         .sort()
         .map((name) => ({ name, content: result.files[name] }))
+      refreshInspectors()
       if (result.ok) {
         showOutputFiles(entries)
         renderErrors(parsed, 'build')
@@ -330,7 +537,7 @@ export function initPlayground() {
   }
 
   async function runPrint() {
-    if (busy || language.capabilities.print === false) return
+    if (busy) return
     setBusy(true, 'Printing…')
     try {
       const source = els.textarea.value
@@ -396,7 +603,7 @@ export function initPlayground() {
   function bindEvents() {
     if (els.lang) els.lang.addEventListener('change', () => changeLanguage(els.lang.value))
     if (els.build) els.build.addEventListener('click', runBuild)
-    if (els.print) els.print.addEventListener('click', runPrint)
+
     if (els.reset) els.reset.addEventListener('click', resetExample)
     if (els.copy) els.copy.addEventListener('click', copyOutput)
 
@@ -416,10 +623,14 @@ export function initPlayground() {
     if (els.optPlatform) els.optPlatform.addEventListener('change', () => (options.platform = els.optPlatform.value))
     if (els.optLoader) els.optLoader.addEventListener('change', () => (options.loader = els.optLoader.value))
     if (els.optMinify) els.optMinify.addEventListener('change', () => (options.minify = els.optMinify.checked))
-    if (els.optBundle) els.optBundle.addEventListener('change', () => (options.bundle = els.optBundle.checked))
+
 
     $$('[data-pg-out-tab]').forEach((t) =>
-      t.addEventListener('click', () => showOutTab(t.getAttribute('data-pg-out-tab'))),
+      t.addEventListener('click', () => {
+        const name = t.getAttribute('data-pg-out-tab')
+        showOutTab(name)
+        if (name === 'lexer' || name === 'ast') refreshInspectors()
+      }),
     )
 
     root.addEventListener('keydown', (event) => {
@@ -429,19 +640,4 @@ export function initPlayground() {
       }
     })
   }
-}
-
-const UNAVAILABLE = {
-  lexer: {
-    title: 'Lexer / tokens are not available in the browser',
-    reason:
-      'The WebAssembly engine exposes only the `guchho_build` entry point. Token-level access lives in the native compiler API, which the browser build does not include.',
-    hint: "Native: import { lexer } from 'guchho'",
-  },
-  ast: {
-    title: 'AST is not available in the browser',
-    reason:
-      'Parsing to an AST is part of the native compiler API (`parse()`), not the browser engine ABI. The browser build only bundles and prints.',
-    hint: "Native: import { parse } from 'guchho'",
-  },
 }
