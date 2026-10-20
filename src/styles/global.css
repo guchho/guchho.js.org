@@ -653,7 +653,7 @@ html[data-theme="dark"] .theme-icon-dark {
 .site-footer {
   border-top: 1px solid var(--border);
   background: var(--bg-soft);
-  margin-top: 64px;
+  margin-top: 0;
 }
 .site-footer-inner {
   max-width: var(--maxw);
@@ -1111,7 +1111,7 @@ body.home .toc {
 body.home .content {
   max-width: var(--maxw);
   margin: 0 auto;
-  padding: 0 20px 72px;
+  padding: 0 20px 0;
 }
 
 body.home .hero {
@@ -1537,7 +1537,7 @@ html[data-theme="dark"] .card-grid .card:hover .card-icon {
 
 @media (max-width: 860px) {
   body.home .content {
-    padding: 0 12px 56px;
+    padding: 0 12px 0;
   }
   body.home .hero {
     padding-top: 44px;
@@ -2268,6 +2268,215 @@ a[target="_blank"]:not(.gh-link)::after {
   }
   .footer-brand-col {
     grid-column: auto;
+  }
+}
+
+
+/* ---------- Install CTA (homepage) ---------- */
+
+/* Always-dark band: pin the dark-theme tokens on this subtree so .btn and
+   friends render correctly in both site themes (same idea as .terminal). */
+.install-cta {
+  --bg: #0d1117;
+  --bg-soft: #161b22;
+  --border: #30363d;
+  --border-strong: #3d444d;
+  --text: #e6edf3;
+  --text-soft: #b7c1cc;
+  --text-muted: #8b949e;
+  --accent: #a78bfa;
+  --accent-strong: #c4b5fd;
+  --cut: 12px;
+
+  position: relative;
+  margin-top: 96px;
+  color: var(--text);
+}
+body.home {
+  overflow-x: clip;
+}
+.install-cta::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 50vw);
+  right: calc(50% - 50vw);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.install-cta-inner {
+  position: relative;
+  display: grid;
+  gap: 40px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(64px, 10vh, 112px) 0;
+}
+.install-logo {
+  display: block;
+  height: 52px;
+  width: auto;
+}
+.install-display {
+  margin: 20px 0 0;
+  font-family: var(--font-sans);
+  font-size: clamp(2.5rem, 6vw, 4.75rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+}
+.install-display span {
+  color: var(--accent);
+}
+.install-cta-body {
+  display: flex;
+  flex-direction: column;
+}
+.install-lede {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--text-soft);
+}
+.install-inline-code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--accent);
+}
+.install-widget {
+  position: relative;
+  width: 100%;
+  max-width: 36rem;
+  margin-top: 28px;
+}
+.install-cmd {
+  display: flex;
+  align-items: stretch;
+  height: 60px;
+  background: #161b22;
+  color: var(--text);
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+}
+.install-cmd[hidden] {
+  display: none;
+}
+.install-prompt {
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 18px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  user-select: none;
+}
+.install-cmd-text {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: inherit;
+}
+.install-cmd-text::-webkit-scrollbar {
+  display: none;
+}
+.install-copy {
+  flex: none;
+  width: 56px;
+  border: 0;
+  border-left: 1px solid rgba(230, 237, 243, 0.14);
+  background: transparent;
+  color: rgba(230, 237, 243, 0.65);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.install-copy:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.install-copy-icons {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+.install-icon {
+  position: absolute;
+  inset: 0;
+  width: 16px;
+  height: 16px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.install-icon-check {
+  opacity: 0;
+  transform: scale(0.75);
+  color: #3fb950;
+}
+.install-copy.is-copied .install-icon-copy {
+  opacity: 0;
+  transform: scale(0.75);
+}
+.install-copy.is-copied .install-icon-check {
+  opacity: 1;
+  transform: none;
+}
+.install-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 10px;
+}
+.install-tabs {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+.install-tabs button {
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.install-tabs button:hover {
+  color: var(--text);
+}
+.install-tabs button[aria-selected="true"] {
+  background: #161b22;
+  color: var(--text);
+}
+.install-script-link {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.install-script-link:hover {
+  color: var(--text);
+}
+.install-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+}
+@media (min-width: 1024px) {
+  .install-cta-inner {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 48px;
   }
 }
 
