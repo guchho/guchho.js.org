@@ -639,6 +639,53 @@
     goTo(0)
   }
 
+  // OS-aware install command tabs + copy buttons in the homepage CTA.
+  function bindInstall() {
+    const root = document.querySelector('.install-cta')
+    if (!root) return
+    const panels = root.querySelectorAll('[data-install]')
+    const tabs = root.querySelectorAll('[data-install-link]')
+    if (!panels.length || !tabs.length) return
+    const scriptLink = root.querySelector('.install-script-link')
+    const scriptHref = { posix: '/install', windows: '/install.ps1' }
+
+    function select(key) {
+      panels.forEach((panel) => {
+        panel.hidden = panel.dataset.install !== key
+      })
+      tabs.forEach((tab) => {
+        tab.setAttribute('aria-selected', String(tab.dataset.installLink === key))
+      })
+      if (scriptLink && scriptHref[key]) scriptLink.setAttribute('href', scriptHref[key])
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => select(tab.dataset.installLink))
+    })
+
+    const platform = navigator.userAgentData?.platform || navigator.platform || ''
+    if (/win/i.test(platform)) select('windows')
+
+    root.querySelectorAll('.install-copy').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const panel = button.closest('[data-install]')
+        const text = panel?.querySelector('.install-cmd-text')?.textContent ?? ''
+        if (!text) return
+        try {
+          await navigator.clipboard.writeText(text)
+        } catch {
+          return
+        }
+        button.classList.add('is-copied')
+        button.setAttribute('aria-label', 'Copied')
+        setTimeout(() => {
+          button.classList.remove('is-copied')
+          button.setAttribute('aria-label', 'Copy install command')
+        }, 1600)
+      })
+    })
+  }
+
   function init() {
     applyTheme(currentTheme())
     document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.addEventListener('click', toggleTheme))
@@ -649,6 +696,7 @@
     bindScrollSpy()
     bindScrollProgress()
     bindTour()
+    bindInstall()
     initSearch()
   }
 
