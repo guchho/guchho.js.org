@@ -305,12 +305,51 @@
   </div>
 </section>
 
-<section class="home-section">
-  <h2 class="section-title">Start building</h2>
-  <div class="cta-row">
-    <a class="btn btn-primary" href="/guide/getting-started/">
-      Getting started
-    </a>
-    <a class="btn btn-secondary" href="/reference/cli/">CLI reference</a>
+<section class="install-cta">
+  <div class="install-cta-inner">
+    <div class="install-cta-lede">
+      <img src="{{rootPrefix}}public/logo.png" alt="" width="80" height="70" class="install-logo">
+      <h2 class="install-display">Start building<br>in <span>one command.</span></h2>
+    </div>
+    <div class="install-cta-body">
+      <p class="install-lede">
+        Install Guchho, open the project you were already working on, and run
+        <code class="install-inline-code">guchho init</code>. Your code, config
+        and scripts stay exactly as they are.
+      </p>
+      <div class="install-widget">
+        <div class="install-cmd" data-install="posix">
+          <span class="install-prompt" aria-hidden="true">$</span>
+          <code class="install-cmd-text">curl -fsSL https://guchho.js.org/install | bash</code>
+          <button type="button" class="install-copy" aria-label="Copy install command">
+            <span class="install-copy-icons">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" class="install-icon install-icon-copy"><path d="M5.5 16H3V3h13v2.5"></path><path d="M8 8h9l4 4v9H8z"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" class="install-icon install-icon-check"><path d="M4 12l5 5L20 6"></path></svg>
+            </span>
+          </button>
+        </div>
+        <div class="install-cmd" data-install="windows" hidden>
+          <span class="install-prompt" aria-hidden="true">&gt;</span>
+          <code class="install-cmd-text">powershell -c "irm https://guchho.js.org/install.ps1 | iex"</code>
+          <button type="button" class="install-copy" aria-label="Copy install command">
+            <span class="install-copy-icons">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" class="install-icon install-icon-copy"><path d="M5.5 16H3V3h13v2.5"></path><path d="M8 8h9l4 4v9H8z"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" class="install-icon install-icon-check"><path d="M4 12l5 5L20 6"></path></svg>
+            </span>
+          </button>
+        </div>
+        <div class="install-meta">
+          <div class="install-tabs" role="tablist" aria-label="Operating system">
+            <button type="button" role="tab" aria-selected="true" data-install-link="posix">macOS &amp; Linux</button>
+            <button type="button" role="tab" aria-selected="false" data-install-link="windows">Windows</button>
+          </div>
+          <a class="install-script-link" href="/install" target="_blank" rel="noopener">View install script ↗</a>
+        </div>
+      </div>
+      <div class="install-actions">
+        <a class="btn btn-primary" href="/guide/getting-started/">Getting started</a>
+        <a class="btn btn-secondary" href="/reference/cli/">CLI reference</a>
+      </div>
+    </div>
   </div>
 </section>
