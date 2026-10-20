@@ -1,0 +1,806 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Guchho installer — https://guchho.js.org/install
+#
+# Installs the native Guchho CLI directly from the official npm registry
+# tarball. No npm, no Node.js, no admin privileges required.
+#
+# Usage:
+#   curl -fsSL https://guchho.js.org/install | bash
+#
+# Environment:
+#   GUCHHO_INSTALL          Install directory (default: $HOME/.guchho)
+#   GUCHHO_VERSION          Pin an exact published version (default: latest)
+#   GUCHHO_REGISTRY         npm registry (default: https://registry.npmjs.org)
+#   GUCHHO_NO_PATH_UPDATE   Set to 1 to skip shell profile PATH changes
+#
+# Supported platforms:
+#   linux-x64      -> @guchho/linux-x64
+#   darwin-arm64   -> @guchho/darwin-arm64
+
+GUCHHO_REGISTRY="${GUCHHO_REGISTRY:-https://registry.npmjs.org}"
+GUCHHO_INSTALL="${GUCHHO_INSTALL:-$HOME/.guchho}"
+
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  C_RED=$'\033[31m'; C_GREEN=$'\033[32m'; C_YELLOW=$'\033[33m'
+  C_BOLD=$'\033[1m'; C_RESET=$'\033[0m'
+else
+  C_RED=''; C_GREEN=''; C_YELLOW=''; C_BOLD=''; C_RESET=''
+fi
+
+error() {
+  printf '%serror%s: %s\n' "$C_RED" "$C_RESET" "$*" >&2
+  exit 1
+}
+
+info() { printf '%s\n' "$*"; }
+info_bold() { printf '%s%s%s\n' "$C_BOLD" "$*" "$C_RESET"; }
+success() { printf '%s%s%s\n' "$C_GREEN" "$*" "$C_RESET"; }
+warn() { printf '%swarning%s: %s\n' "$C_YELLOW" "$C_RESET" "$*" >&2; }
+
+usage() {
+  cat <<'EOF'
+Guchho installer — https://guchho.js.org/install
+
+Usage:
+  curl -fsSL https://guchho.js.org/install | bash
+
+Environment:
+  GUCHHO_INSTALL          Install directory (default: $HOME/.guchho)
+  GUCHHO_VERSION          Pin an exact published version
+  GUCHHO_REGISTRY         npm registry (default: https://registry.npmjs.org)
+  GUCHHO_NO_PATH_UPDATE   Set to 1 to skip shell profile PATH changes
+
+Supported platforms: linux-x64, darwin-arm64
+EOF
+}
+
+TMPROOT=''
+STAGING_DIR=''
+
+cleanup() {
+  if [ -n "$TMPROOT" ] && [ -d "$TMPROOT" ]; then
+    rm -rf "$TMPROOT"
+  fi
+  if [ -n "$STAGING_DIR" ] && [ -d "$STAGING_DIR" ]; then
+    rm -rf "$STAGING_DIR"
+  fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+# ---------------------------------------------------------------------------
+# Platform detection
+# ---------------------------------------------------------------------------
+
+detect_platform() {
+  local os arch platform
+
+  # Test hook: lets the automated tests exercise either platform branch
+  # without depending on the host they run on.
+  if [ -n "${GUCHHO_TEST_PLATFORM:-}" ]; then
+    platform="$GUCHHO_TEST_PLATFORM"
+    case "$platform" in
+      linux-x64) printf '%s\n' '@guchho/linux-x64'; return 0 ;;
+      darwin-arm64) printf '%s\n' '@guchho/darwin-arm64'; return 0 ;;
+      darwin-x64)
+        error "macOS Intel is not a verified target for this installer. Supported: linux-x64, darwin-arm64." ;;
+      *)
+        error "Unsupported platform: $platform. Supported: linux-x64, darwin-arm64." ;;
+    esac
+  fi
+
+  os=$(uname -s)
+  arch=$(uname -m)
+
+  case "$os" in
+    Linux) os='linux' ;;
+    Darwin) os='darwin' ;;
+    *) error "Unsupported operating system: $(uname -s). This installer supports Linux x64 and macOS ARM64." ;;
+  esac
+
+  if [ "$os" = 'darwin' ] && [ "$arch" = 'x86_64' ]; then
+    # A Rosetta-translated shell reports x86_64 even on Apple Silicon.
+    if command -v sysctl >/dev/null 2>&1 &&
+      [ "$(sysctl -in sysctl.proc_translated 2>/dev/null || true)" = '1' ]; then
+      arch='arm64'
+    fi
+  fi
+
+  case "$arch" in
+    x86_64 | amd64) arch='x64' ;;
+    arm64 | aarch64) arch='arm64' ;;
+    *) error "Unsupported architecture: $(uname -m). Supported: Linux x64, macOS ARM64." ;;
+  esac
+
+  platform="${os}-${arch}"
+
+  case "$platform" in
+    linux-x64) printf '%s\n' '@guchho/linux-x64' ;;
+    darwin-arm64) printf '%s\n' '@guchho/darwin-arm64' ;;
+    darwin-x64)
+      error "macOS Intel is not a verified target for this installer. Supported: linux-x64, darwin-arm64." ;;
+    *)
+      error "Unsupported platform: $platform. Supported: linux-x64, darwin-arm64." ;;
+  esac
+}
+
+detect_libc() {
+  if [ -f /etc/alpine-release ]; then
+    printf '%s\n' 'musl'
+    return 0
+  fi
+  if command -v ldd >/dev/null 2>&1; then
+    if ldd --version 2>&1 | grep -qi musl; then
+      printf '%s\n' 'musl'
+      return 0
+    fi
+    if ldd --version 2>&1 | grep -qiE 'glibc|gnu libc'; then
+      printf '%s\n' 'glibc'
+      return 0
+    fi
+  fi
+  for interp in /lib/ld-musl-*.so.1 /lib/ld-musl-*.so; do
+    if [ -e "$interp" ]; then
+      printf '%s\n' 'musl'
+      return 0
+    fi
+  done
+  printf '%s\n' 'unknown'
+}
+
+binary_libc() {
+  # The ELF interpreter name says which dynamic loader the binary needs.
+  if LC_ALL=C grep -aq 'ld-musl' "$1" 2>/dev/null; then
+    printf '%s\n' 'musl'
+  elif LC_ALL=C grep -aq 'ld-linux' "$1" 2>/dev/null; then
+    printf '%s\n' 'glibc'
+  else
+    printf '%s\n' 'unknown'
+  fi
+}
+
+check_libc_compatibility() {
+  local binary=$1 host target
+  [ "$(uname -s)" = 'Linux' ] || return 0
+  host=$(detect_libc)
+  target=$(binary_libc "$binary")
+  if [ "$host" = 'unknown' ] || [ "$target" = 'unknown' ]; then
+    return 0
+  fi
+  if [ "$host" != "$target" ]; then
+    error "libc mismatch: this system uses $host but the published @guchho/linux-x64 binary needs $target.
+No $target build for this platform is published for Guchho yet.
+Report this at https://github.com/guchho/guchho/issues, or build from source:
+  https://github.com/guchho/guchho#readme"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Registry metadata
+# ---------------------------------------------------------------------------
+
+validate_version_arg() {
+  case "$1" in
+    '')
+      error 'Empty version.' ;;
+    *[!A-Za-z0-9._+-]*)
+      error "Invalid version string: $1 (only letters, digits, '.', '_', '+', '-' are allowed)." ;;
+  esac
+}
+
+is_local_url() {
+  case "$1" in
+    http://localhost | http://localhost/* | http://localhost:* | \
+      http://127.0.0.1 | http://127.0.0.1/* | http://127.0.0.1:*)
+      return 0 ;;
+  esac
+  return 1
+}
+
+validate_registry() {
+  case "$1" in
+    https://*) ;;
+    *)
+      if is_local_url "$1"; then
+        return 0
+      fi
+      error "Refusing non-HTTPS registry: $1" ;;
+  esac
+}
+
+json_str_field() {
+  # $1 = JSON document, $2 = key. The single-version registry documents we
+  # fetch contain exactly one value per key we read.
+  printf '%s' "$1" |
+    grep -o "\"$2\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" |
+    head -n 1 |
+    sed 's/^[^:]*:[[:space:]]*"//; s/"$//'
+}
+
+fetch_metadata() {
+  # $1 = package, $2 = version ('' for latest). Prints the document.
+  local pkg=$1 version=$2 url code tmp
+  if [ -n "$version" ]; then
+    url="$GUCHHO_REGISTRY/$pkg/$version"
+  else
+    url="$GUCHHO_REGISTRY/$pkg/latest"
+  fi
+  tmp=$(mktemp 2>/dev/null || mktemp -t guchho)
+  if command -v curl >/dev/null 2>&1; then
+    if is_local_url "$url"; then
+      code=$(curl -sSL -o "$tmp" -w '%{http_code}' "$url") || {
+        rm -f "$tmp"
+        error "Network error while fetching $url"
+      }
+    else
+      code=$(curl -sSL --proto '=https' --tlsv1.2 -o "$tmp" -w '%{http_code}' "$url") || {
+        rm -f "$tmp"
+        error "Network error while fetching $url"
+      }
+    fi
+  elif command -v wget >/dev/null 2>&1; then
+    if wget -q -O "$tmp" "$url" 2>/dev/null; then
+      code=200
+    else
+      code=404
+    fi
+  else
+    rm -f "$tmp"
+    error "Neither curl nor wget is available. Install one and re-run this script."
+  fi
+
+  case "$code" in
+    200) ;;
+    404)
+      rm -f "$tmp"
+      if [ -n "$version" ]; then
+        error "Version $version is not published for $pkg.
+This platform package has no release for that version. Check published versions with:
+  curl -s $GUCHHO_REGISTRY/$pkg"
+      else
+        error "Package $pkg is not published at $GUCHHO_REGISTRY.
+The requested platform is not an officially published Guchho target."
+      fi
+      ;;
+    *)
+      rm -f "$tmp"
+      error "Registry request failed for $url (HTTP $code)."
+      ;;
+  esac
+  cat "$tmp"
+  rm -f "$tmp"
+}
+
+validate_tarball_url() {
+  local url=$1 reg_host url_host
+  case "$url" in
+    https://*) ;;
+    *)
+      if is_local_url "$url"; then
+        :
+      else
+        error "Refusing tarball URL that is not HTTPS: $url"
+      fi ;;
+  esac
+  case "$url" in
+    *.tgz) ;;
+    *) error "Refusing unexpected tarball URL (not a .tgz): $url" ;;
+  esac
+  case "$url" in
+    */-/*) ;;
+    *) error "Refusing unexpected tarball URL (not an npm tarball path): $url" ;;
+  esac
+
+  reg_host=${GUCHHO_REGISTRY#*://}
+  reg_host=${reg_host%%/*}
+  url_host=${url#*://}
+  url_host=${url_host%%/*}
+  [ "$url_host" = "$reg_host" ] ||
+    error "Refusing tarball URL on unexpected host: $url (registry: $reg_host)"
+}
+
+resolve_version() {
+  # Prints "pkg<TAB>version<TAB>tarball<TAB>integrity<TAB>shasum".
+  local pkg=$1 version=${2:-} doc name resolved tarball integrity shasum
+  doc=$(fetch_metadata "$pkg" "$version") || exit 1
+
+  name=$(json_str_field "$doc" 'name')
+  resolved=$(json_str_field "$doc" 'version')
+  tarball=$(json_str_field "$doc" 'tarball')
+  integrity=$(json_str_field "$doc" 'integrity')
+  shasum=$(json_str_field "$doc" 'shasum')
+
+  if [ -z "$name" ] || [ -z "$resolved" ]; then
+    error "Malformed registry metadata for $pkg (missing name or version)."
+  fi
+  [ "$name" = "$pkg" ] || error "Malformed registry metadata: expected $pkg, got $name."
+  if [ -z "$tarball" ]; then
+    error "Malformed registry metadata for $pkg@$resolved (missing dist.tarball)."
+  fi
+
+  if [ -n "$version" ] && [ "$resolved" != "$version" ]; then
+    error "Registry returned $name@$resolved when version $version was requested. Refusing to continue."
+  fi
+
+  validate_tarball_url "$tarball"
+
+  printf '%s\t%s\t%s\t%s\t%s\n' "$pkg" "$resolved" "$tarball" "$integrity" "$shasum"
+}
+
+# ---------------------------------------------------------------------------
+# Integrity
+# ---------------------------------------------------------------------------
+
+b64decode() {
+  # stdin -> stdout. Probes each available decoder once; the probe guards
+  # against tools whose decode flag differs across platforms.
+  local probe='YQ=='
+  if command -v openssl >/dev/null 2>&1; then
+    if [ "$(printf '%s' "$probe" | openssl base64 -d -A 2>/dev/null || true)" = 'a' ]; then
+      openssl base64 -d -A
+      return 0
+    fi
+    if [ "$(printf '%s' "$probe" | openssl base64 -d 2>/dev/null || true)" = 'a' ]; then
+      openssl base64 -d
+      return 0
+    fi
+  fi
+  if command -v base64 >/dev/null 2>&1; then
+    if [ "$(printf '%s' "$probe" | base64 -d 2>/dev/null || true)" = 'a' ]; then
+      base64 -d
+      return 0
+    fi
+    if [ "$(printf '%s' "$probe" | base64 -D 2>/dev/null || true)" = 'a' ]; then
+      base64 -D
+      return 0
+    fi
+  fi
+  return 1
+}
+
+digest_hex() {
+  # $1 = sha512|sha1, $2 = file. Prints lowercase hex.
+  case "$1" in
+    sha512)
+      if command -v sha512sum >/dev/null 2>&1; then
+        sha512sum "$2" | cut -d' ' -f1
+      elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 512 "$2" | cut -d' ' -f1
+      elif command -v openssl >/dev/null 2>&1; then
+        openssl dgst -sha512 "$2" | sed 's/^.*= *//' | tr -d ' \n'
+      else
+        return 1
+      fi
+      ;;
+    sha1)
+      if command -v sha1sum >/dev/null 2>&1; then
+        sha1sum "$2" | cut -d' ' -f1
+      elif command -v shasum >/dev/null 2>&1; then
+        shasum "$2" | cut -d' ' -f1
+      elif command -v openssl >/dev/null 2>&1; then
+        openssl dgst -sha1 "$2" | sed 's/^.*= *//' | tr -d ' \n'
+      else
+        return 1
+      fi
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+b64_to_hex() {
+  # stdin (base64) -> stdout (hex). Converted in one pipeline so decoded
+  # bytes never pass through a shell variable (NUL bytes would be lost).
+  b64decode | od -An -tx1 | tr -d ' \n'
+}
+
+verify_integrity() {
+  # $1 = file, $2 = dist.integrity ('' if absent), $3 = dist.shasum
+  local file=$1 integrity=$2 shasum=$3 expected_hex actual_hex algo
+
+  if [ -z "$integrity" ] && [ -z "$shasum" ]; then
+    error "No published integrity metadata for the downloaded archive. Refusing to install unverified content."
+  fi
+
+  case "$integrity" in
+    sha512-*)
+      algo='SHA-512'
+      actual_hex=$(digest_hex sha512 "$file") ||
+        error "No SHA-512 tool available (need sha512sum, shasum, or openssl)."
+      expected_hex=$(printf '%s' "${integrity#sha512-}" | b64_to_hex) ||
+        error "Cannot decode the published sha512 integrity value."
+      ;;
+    sha1-*)
+      algo='SHA-1'
+      actual_hex=$(digest_hex sha1 "$file") ||
+        error "No SHA-1 tool available (need sha1sum, shasum, or openssl)."
+      expected_hex=$(printf '%s' "${integrity#sha1-}" | b64_to_hex) ||
+        error "Cannot decode the published sha1 integrity value."
+      ;;
+    '')
+      # Only dist.shasum (plain hex SHA-1) was published.
+      algo='SHA-1 shasum'
+      actual_hex=$(digest_hex sha1 "$file") ||
+        error "No SHA-1 tool available (need sha1sum, shasum, or openssl)."
+      expected_hex=$shasum
+      ;;
+    *)
+      error "Unsupported integrity algorithm published by the registry: ${integrity%%-*}"
+      ;;
+  esac
+
+  actual_hex=$(printf '%s' "$actual_hex" | tr 'A-F' 'a-f')
+  expected_hex=$(printf '%s' "$expected_hex" | tr 'A-F' 'a-f')
+
+  if [ -z "$actual_hex" ] || [ -z "$expected_hex" ] || [ "$actual_hex" != "$expected_hex" ]; then
+    error "Integrity check failed for the downloaded archive ($algo mismatch).
+The bytes do not match the published registry metadata. Refusing to install.
+Re-run this script, or report the issue at https://github.com/guchho/guchho/issues"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Download and extraction
+# ---------------------------------------------------------------------------
+
+download_tarball() {
+  # $1 = url, $2 = destination
+  local url=$1 out=$2
+  if command -v curl >/dev/null 2>&1; then
+    if is_local_url "$url"; then
+      if [ -t 2 ]; then
+        curl -fL --retry 3 --progress-bar -o "$out" "$url" >&2
+      else
+        curl -fsSL --retry 3 -o "$out" "$url"
+      fi
+    else
+      if [ -t 2 ]; then
+        curl -fL --retry 3 --progress-bar --proto '=https' --tlsv1.2 -o "$out" "$url" >&2
+      else
+        curl -fsSL --retry 3 --proto '=https' --tlsv1.2 -o "$out" "$url"
+      fi
+    fi
+    [ -f "$out" ] || error "Download failed: $url
+Check your network connection and re-run this script."
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$out" "$url" ||
+      error "Download failed: $url
+Check your network connection and re-run this script."
+  else
+    error "Neither curl nor wget is available. Install one and re-run this script."
+  fi
+  [ -s "$out" ] || error "Downloaded archive is empty: $url"
+}
+
+validate_archive_entries() {
+  # Rejects unsafe entries before anything is extracted. Archive content is
+  # untrusted: every check reads entries through a pipe, never through an
+  # unquoted heredoc (which would expand command substitutions).
+  local tarball=$1 entry member listing members
+
+  listing=$(tar -tzf "$tarball" 2>/dev/null) ||
+    error "The downloaded archive is corrupt or is not a gzip tar archive."
+
+  if [ -z "$listing" ]; then
+    # GNU tar exits 0 for a gzip stream that contains no tar data at all.
+    error "The downloaded archive is corrupt or is not a gzip tar archive."
+  fi
+
+  if ! printf '%s\n' "$listing" | while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    case "$entry" in
+      /*)
+        printf 'Unsafe absolute path in archive: %s\n' "$entry" >&2
+        exit 1 ;;
+      .. | ../* | */.. | */../*)
+        printf 'Unsafe path traversal in archive: %s\n' "$entry" >&2
+        exit 1 ;;
+    esac
+  done; then
+    error "The downloaded archive contains unsafe entries and was rejected."
+  fi
+
+  members=$(tar -tvzf "$tarball" 2>/dev/null) ||
+    error "The downloaded archive is corrupt or is not a gzip tar archive."
+
+  # typeflag letter is the first character of a long listing line.
+  if ! printf '%s\n' "$members" | while IFS= read -r member; do
+    [ -n "$member" ] || continue
+    case "$member" in
+      l* | h*)
+        printf 'Unexpected link entry in archive: %s\n' "$member" >&2
+        exit 1 ;;
+    esac
+  done; then
+    error "The downloaded archive contains links or unexpected entry types and was rejected."
+  fi
+}
+
+extract_archive() {
+  # $1 = tarball, $2 = destination dir
+  if ! tar -xzf "$1" -C "$2" --no-same-owner --no-same-permissions 2>/dev/null; then
+    find "$2" -mindepth 1 -delete 2>/dev/null || rm -rf "$2"/*
+    tar -xzf "$1" -C "$2" ||
+      error "Extraction failed. The downloaded archive may be corrupt."
+  fi
+}
+
+validate_package_layout() {
+  # $1 = extraction dir, $2 = package name, $3 = version. Prints the binary path.
+  local dir=$1 pkg=$2 version=$3 layout_name layout_version binary
+  binary="$dir/package/bin/guchho"
+
+  if [ ! -f "$dir/package/package.json" ]; then
+    error "Unexpected package layout: package/package.json is missing."
+  fi
+  if [ ! -f "$binary" ]; then
+    error "Unexpected package layout: package/bin/guchho is missing."
+  fi
+
+  layout_name=$(json_str_field "$(cat "$dir/package/package.json")" 'name')
+  layout_version=$(json_str_field "$(cat "$dir/package/package.json")" 'version')
+  [ "$layout_name" = "$pkg" ] ||
+    error "Package layout mismatch: expected $pkg, archive contains '${layout_name:-unknown}'."
+  [ "$layout_version" = "$version" ] ||
+    error "Package layout mismatch: expected version $version, archive contains '${layout_version:-unknown}'."
+
+  printf '%s\n' "$binary"
+}
+
+# ---------------------------------------------------------------------------
+# Installation
+# ---------------------------------------------------------------------------
+
+binary_runs_version() {
+  # $1 = binary path, $2 = expected version. Returns 0/1 without exiting;
+  # diagnostics go to stderr. Callers decide whether a failure is fatal,
+  # so activation can roll back instead of dying mid-way.
+  local bin=$1 expected=$2 output status=0
+
+  if [ ! -f "$bin" ]; then
+    printf 'Verification failed: %s does not exist.\n' "$bin" >&2
+    return 1
+  fi
+
+  output=$("$bin" --version 2>&1) || status=$?
+  if [ "$status" -ne 0 ]; then
+    printf 'The executable could not run (exit code %s).\n' "$status" >&2
+    printf 'Command: %s --version\n' "$bin" >&2
+    printf 'Output:\n%s\n' "$output" >&2
+    if [ "$(uname -s)" = 'Linux' ] && [ "$(detect_libc)" = 'musl' ]; then
+      printf 'This system uses musl (e.g. Alpine Linux); the published binary may be glibc-linked.\n' >&2
+    fi
+    return 1
+  fi
+
+  if ! printf '%s' "$output" | grep -qF "$expected"; then
+    printf 'Unexpected version reported by %s --version\n' "$bin" >&2
+    printf 'Expected to find: %s\nOutput:\n%s\n' "$expected" "$output" >&2
+    return 1
+  fi
+  return 0
+}
+
+activate_install() {
+  # $1 = staged binary, $2 = final path, $3 = expected version
+  local staged=$1 final=$2 expected=$3 backup='' bin_dir
+  bin_dir=$(dirname "$final")
+  mkdir -p "$bin_dir"
+
+  if [ -e "$final" ] || [ -L "$final" ]; then
+    backup="$final.previous"
+    rm -f "$backup"
+    cp -p "$final" "$backup" 2>/dev/null ||
+      mv "$final" "$backup" ||
+      error "Cannot back up the existing installation at $final (permission denied or file locked)."
+  fi
+
+  if ! mv -f "$staged" "$final"; then
+    if [ -n "$backup" ]; then
+      mv -f "$backup" "$final" 2>/dev/null || true
+    fi
+    error "Cannot activate the new installation at $final (permission denied or file locked)."
+  fi
+
+  if ! binary_runs_version "$final" "$expected"; then
+    if [ -n "$backup" ] && mv -f "$backup" "$final" 2>/dev/null; then
+      error "Activation verification failed; the previous installation was restored."
+    fi
+    rm -f "$final"
+    error "Activation verification failed and no previous installation could be restored."
+  fi
+
+  rm -f "$backup"
+}
+
+# ---------------------------------------------------------------------------
+# PATH management
+# ---------------------------------------------------------------------------
+
+path_contains_dir() {
+  case ":$PATH:" in
+    *":$1:"*) return 0 ;;
+  esac
+  return 1
+}
+
+file_mentions_dir() {
+  local file=$1 dir=$2
+  [ -f "$file" ] && grep -qF "$dir" "$file" 2>/dev/null
+}
+
+append_posix_path_line() {
+  local file=$1 dir=$2
+  if file_mentions_dir "$file" "$dir"; then
+    return 0
+  fi
+  if [ ! -w "$file" ]; then
+    return 1
+  fi
+  {
+    printf '\n# Added by the Guchho installer (https://guchho.js.org/install)\n'
+    printf 'export PATH="%s:$PATH"\n' "$dir"
+  } >>"$file"
+}
+
+append_fish_path_line() {
+  local file=$1 dir=$2
+  if file_mentions_dir "$file" "$dir"; then
+    return 0
+  fi
+  if [ ! -w "$file" ]; then
+    return 1
+  fi
+  {
+    printf '\n# Added by the Guchho installer (https://guchho.js.org/install)\n'
+    printf 'set -gx PATH "%s" $PATH\n' "$dir"
+  } >>"$file"
+}
+
+setup_path() {
+  local bin_dir=$1 updated='' manual='' rc
+
+  if path_contains_dir "$bin_dir"; then
+    info "$bin_dir is already on PATH for this session."
+    return 0
+  fi
+
+  if [ "${GUCHHO_NO_PATH_UPDATE:-0}" = '1' ]; then
+    manual=1
+  else
+    for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+      if [ -f "$rc" ]; then
+        if append_posix_path_line "$rc" "$bin_dir"; then
+          updated=1
+        fi
+      fi
+    done
+    if [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish" ]; then
+      if append_fish_path_line "${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish" "$bin_dir"; then
+        updated=1
+      fi
+    fi
+  fi
+
+  if [ -n "$updated" ]; then
+    info "Added $bin_dir to your shell configuration (existing bash/zsh/fish files only)."
+    info "Restart your terminal, or run:"
+    info_bold "  export PATH=\"$bin_dir:\$PATH\""
+  else
+    manual=1
+  fi
+
+  if [ -n "$manual" ]; then
+    warn "Automatic PATH setup was not possible."
+    info "Add this line to your shell profile (e.g. ~/.bashrc, ~/.zshrc, or ~/.config/fish/config.fish):"
+    info_bold "  export PATH=\"$bin_dir:\$PATH\""
+    info "For fish, use instead:"
+    info_bold "  set -gx PATH \"$bin_dir\" \$PATH"
+  fi
+}
+
+report_command_conflicts() {
+  local bin_dir=$1 resolved_cmd
+  resolved_cmd=$(command -v guchho 2>/dev/null || true)
+  if [ -n "$resolved_cmd" ] && [ "$resolved_cmd" != "$bin_dir/guchho" ]; then
+    warn "'guchho' already resolves to $resolved_cmd, which takes precedence over the new installation."
+    warn "Remove or rename that file, or ensure $bin_dir comes first on PATH."
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+main() {
+  case "${1:-}" in
+    -h | --help)
+      usage
+      return 0
+      ;;
+    '')
+      ;;
+    *)
+      error "Unknown argument: $1 (only --help is supported)."
+      ;;
+  esac
+
+  validate_registry "$GUCHHO_REGISTRY"
+
+  local requested_version=''
+  if [ -n "${GUCHHO_VERSION:-}" ]; then
+    requested_version="$GUCHHO_VERSION"
+    validate_version_arg "$requested_version"
+  fi
+
+  info_bold "Detecting platform..."
+  local pkg
+  pkg=$(detect_platform)
+  info "Platform package: $pkg"
+
+  info_bold "Resolving version..."
+  local resolved
+  resolved=$(resolve_version "$pkg" "$requested_version") || exit 1
+  local name version tarball integrity shasum
+  name=$(printf '%s' "$resolved" | cut -f1)
+  version=$(printf '%s' "$resolved" | cut -f2)
+  tarball=$(printf '%s' "$resolved" | cut -f3)
+  integrity=$(printf '%s' "$resolved" | cut -f4)
+  shasum=$(printf '%s' "$resolved" | cut -f5)
+  info_bold "Resolved: $name@$version"
+  info "$tarball"
+
+  TMPROOT=$(mktemp -d 2>/dev/null || mktemp -d -t guchho)
+  local archive="$TMPROOT/package.tgz"
+  local extract_dir="$TMPROOT/ex"
+  mkdir -p "$extract_dir"
+
+  info_bold "Downloading..."
+  download_tarball "$tarball" "$archive"
+
+  info_bold "Verifying integrity..."
+  verify_integrity "$archive" "$integrity" "$shasum"
+  success "Integrity verified."
+
+  info_bold "Extracting..."
+  validate_archive_entries "$archive"
+  extract_archive "$archive" "$extract_dir"
+  local binary
+  binary=$(validate_package_layout "$extract_dir" "$name" "$version") || exit 1
+
+  check_libc_compatibility "$binary"
+  chmod 0755 "$binary"
+
+  local bin_dir="$GUCHHO_INSTALL/bin"
+  STAGING_DIR="$GUCHHO_INSTALL/.staging.$$"
+  mkdir -p "$STAGING_DIR"
+  local staged="$STAGING_DIR/guchho"
+  cp "$binary" "$staged"
+  chmod 0755 "$staged"
+
+  info_bold "Verifying executable..."
+  binary_runs_version "$staged" "$version" ||
+    error "The downloaded executable failed verification and will not be installed."
+  success "Executable verified."
+
+  info_bold "Installing..."
+  activate_install "$staged" "$bin_dir/guchho" "$version"
+  rm -rf "$STAGING_DIR"
+  STAGING_DIR=''
+
+  setup_path "$bin_dir"
+  report_command_conflicts "$bin_dir"
+
+  binary_runs_version "$bin_dir/guchho" "$version" ||
+    error "Post-installation verification failed."
+
+  success "guchho $version installed successfully."
+  info "Location: $bin_dir/guchho"
+  info "Run 'guchho --version' (in a new terminal), then 'guchho init' in any project."
+}
+
+if [ -z "${GUCHHO_SOURCED:-}" ]; then
+  main "$@"
+fi
