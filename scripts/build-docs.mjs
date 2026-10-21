@@ -114,8 +114,8 @@ function breadcrumbJsonLd(route) {
   const items = [{ name: 'Home', item: `${site.url}/` }]
   let path = ''
   for (const segment of segments) {
-    path += `/${segment}/`
-    items.push({ name: humanizeSegment(segment), item: `${site.url}${path}` })
+    path += `/${segment}`
+    items.push({ name: humanizeSegment(segment), item: `${site.url}${path}/` })
   }
   return {
     '@context': 'https://schema.org',
@@ -135,6 +135,7 @@ function websiteJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: site.name,
+    alternateName: ['Guchho.js.org', new URL(site.url).host],
     url: `${site.url}/`,
     description: site.description,
     publisher: { '@type': 'Organization', name: site.name, logo: { '@type': 'ImageObject', url: `${site.url}/logo.png` } },
