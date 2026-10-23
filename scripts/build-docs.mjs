@@ -399,7 +399,16 @@ async function main() {
 
   // Authored pages (src/site/*.html). "home.html" -> "/", "examples.html" -> "/examples/".
   const siteDir = path.join(SRC, 'site')
-  const siteTitles = { playground: 'Try in the browser', 'playground-guide': 'Playground guide' }
+  const siteTitles = {
+    playground: 'Try in the browser',
+    'playground-guide': 'Playground guide',
+    'privacy-policy': 'Privacy Policy',
+    'terms-of-service': 'Terms of Service',
+  }
+  const siteDescriptions = {
+    'privacy-policy': 'How guchho.js.org handles data, cookies, and advertising.',
+    'terms-of-service': 'The terms that govern use of the guchho.js.org website.',
+  }
   for (const entry of await fs.readdir(siteDir, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isFile() || !entry.name.endsWith('.html')) continue
     const name = entry.name.replace(/\.html$/, '')
@@ -412,6 +421,7 @@ async function main() {
         ? '<link rel="stylesheet" href="{{rootPrefix}}src/styles/playground.css" />'
         : ''
     const body = await fs.readFile(path.join(siteDir, entry.name), 'utf8')
+    const description = siteDescriptions[name] || siteConfig.site.description
     const jsonLd = name === 'home' ? [websiteJsonLd(), softwareApplicationJsonLd(), breadcrumbJsonLd(route)] : [breadcrumbJsonLd(route)]
     const html = await compose({
       layoutSrc,
@@ -419,7 +429,7 @@ async function main() {
       footerSrc,
       route,
       title: pageTitle,
-      description: siteConfig.site.description,
+      description,
       body,
       toc: [],
       sidebarHtml,
@@ -432,7 +442,7 @@ async function main() {
     const outFile = path.join(PAGES, routeToFile(route).split('/').join(path.sep))
     await mkdirs(path.dirname(outFile))
     await fs.writeFile(outFile, html, 'utf8')
-    rendered.push({ route, file: '', title: pageTitle, description: siteConfig.site.description, html, anchors: new Set(), lastmod, published: '', jsonLd })
+    rendered.push({ route, file: '', title: pageTitle, description, html, anchors: new Set(), lastmod, published: '', jsonLd })
   }
 
   console.log(`pages: ${rendered.length}`)
@@ -519,11 +529,14 @@ async function main() {
       .join('')
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routesXml}</urlset>\n`
     await fs.writeFile(path.join(DIST, 'sitemap.xml'), sitemap, 'utf8')
-    await fs.writeFile(
-      path.join(DIST, 'robots.txt'),
-      `User-agent: *\nAllow: /\n\nSitemap: ${siteConfig.site.url}/sitemap.xml\n`,
-      'utf8',
-    )
+    const robotsPath = path.join(DIST, 'robots.txt')
+    if (!(await fs.stat(robotsPath).catch(() => null))) {
+      await fs.writeFile(
+        robotsPath,
+        `User-agent: *\nAllow: /\n\nSitemap: ${siteConfig.site.url}/sitemap.xml\n`,
+        'utf8',
+      )
+    }
 
     await writeBlogFeed(rendered)
     await write404Page()
