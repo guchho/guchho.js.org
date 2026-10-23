@@ -660,7 +660,7 @@ html[data-theme="dark"] .theme-icon-dark {
   margin: 0 auto;
   padding: 56px 20px 40px;
   display: grid;
-  grid-template-columns: 2.2fr 1fr 1fr 1.5fr 1fr;
+  grid-template-columns: 2.2fr 1fr 1fr 1fr;
   gap: 40px 32px;
 }
 .footer-col {
