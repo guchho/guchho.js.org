@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://guchho.js.org/sitemap.xml
